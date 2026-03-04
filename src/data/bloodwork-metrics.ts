@@ -6,6 +6,11 @@ export interface MarkerDefinition {
   unit: string
   optimal: [number | null, number | null]
   acceptable: [number | null, number | null]
+  /**
+   * Values strictly outside these bounds (< low, > high) trigger attention status.
+   * Uses strict comparison: a value exactly equal to the threshold is NOT attention.
+   * These may equal the acceptable boundary (e.g. HDL-C low: 40) — that is intentional.
+   */
   attentionThreshold: { low?: number; high?: number }
   panel: BloodworkPanel
   higherBetter: boolean | null
@@ -13,6 +18,9 @@ export interface MarkerDefinition {
   computed?: boolean
   alternateUnits?: string[]
   notes?: string
+  sexVariant?: {
+    female?: { optimal: [number | null, number | null]; acceptable: [number | null, number | null] }
+  }
 }
 
 export const BLOODWORK_PANELS: BloodworkPanel[] = [
@@ -125,13 +133,20 @@ export const BLOODWORK_MARKERS: MarkerDefinition[] = [
     optimal: [14, 17], acceptable: [13, 17.5],
     attentionThreshold: { low: 12, high: 18 },
     panel: 'CBC', higherBetter: null, weight: 4,
-    notes: 'Ranges differ by sex. These are male defaults — adjust for female (12–15 optimal).',
+    notes: 'Default ranges are male. Female ranges provided via sexVariant.',
+    sexVariant: {
+      female: { optimal: [12, 15], acceptable: [11, 16] },
+    },
   },
   {
     id: 'hematocrit', name: 'Hematocrit', unit: '%',
     optimal: [41, 52], acceptable: [38, 54],
     attentionThreshold: { low: 36, high: 56 },
     panel: 'CBC', higherBetter: null, weight: 3,
+    notes: 'Default ranges are male. Female ranges provided via sexVariant.',
+    sexVariant: {
+      female: { optimal: [36, 46], acceptable: [34, 48] },
+    },
   },
   {
     id: 'platelets', name: 'Platelets', unit: 'K/µL',
