@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, BarChart, Bar, CartesianGrid, Legend, ReferenceLine,
 } from 'recharts'
-import ouraData from '../data/oura-data'
+import { getOuraData } from '../utils/oura-storage'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
 import { computeTrend, computeOverallScore } from '../utils/trends'
 import { fmt, fmtFull, hrs, avgArr, scoreColor, filterByRange } from '../utils/helpers'
@@ -23,6 +23,25 @@ const grd = (id: string, c: string) => (
 export default function Dashboard() {
   const [tab, setTab] = useState('Trends')
   const [range, setRange] = useState(90)
+
+  const ouraData = useMemo(() => getOuraData(), [])
+
+  if (!ouraData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-3">
+          <p className="text-lg font-medium text-gray-200">No Oura data loaded</p>
+          <p className="text-sm text-gray-500">
+            Go to{' '}
+            <a href="#/settings" className="text-brand-400 underline hover:text-brand-300">
+              Settings
+            </a>{' '}
+            to import your Oura Ring export.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   // Prepared datasets
   const datasets = useMemo((): OuraData => ({
