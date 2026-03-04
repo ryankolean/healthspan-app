@@ -18,7 +18,7 @@ RESPONSE FORMAT — return ONLY valid JSON, no explanation, no markdown, no othe
   "markers": [
     {
       "name": "exact marker name from the list above",
-      "value": <number>,
+      "value": 85,
       "unit": "unit string exactly as shown on the document",
       "rawText": "exact text as it appears on the document",
       "confidence": "high" or "low"
@@ -38,13 +38,24 @@ RULES:
 
 export function parseClaudeResponse(text: string): ParsedLabDoc | null {
   try {
-    // Strip markdown code block if present (``` or ```json)
-    const cleaned = text
-      .replace(/^```(?:json)?\s*/m, '')
-      .replace(/\s*```\s*$/m, '')
-      .trim()
+    // Try to extract content between first ``` pair
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+    const cleaned = fenceMatch ? fenceMatch[1].trim() : text.trim()
     const parsed = JSON.parse(cleaned)
     if (!Array.isArray(parsed.markers)) return null
+    // Validate each marker has required fields with correct types
+    const validMarkers = parsed.markers.filter((m: unknown) => {
+      if (typeof m !== 'object' || m === null) return false
+      const marker = m as Record<string, unknown>
+      return (
+        typeof marker.name === 'string' && marker.name.length > 0 &&
+        typeof marker.value === 'number' && !isNaN(marker.value) &&
+        typeof marker.unit === 'string' &&
+        typeof marker.rawText === 'string' &&
+        (marker.confidence === 'high' || marker.confidence === 'low')
+      )
+    })
+    parsed.markers = validMarkers
     return parsed as ParsedLabDoc
   } catch {
     return null
@@ -60,7 +71,7 @@ export async function parseLabDocument(
 
   const response = await client.messages.create({
     model: 'claude-opus-4-6',
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [
       {
         role: 'user',
