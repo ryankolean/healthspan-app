@@ -19,3 +19,5 @@ Object.defineProperty(globalThis, 'localStorage', {
   value: createLocalStorageMock(),
   writable: true,
 })
+
+beforeEach(() => localStorage.clear())

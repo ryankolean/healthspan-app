@@ -21,15 +21,23 @@ export function getLabResult(id: string): LabResult | null {
 }
 
 export function saveLabResult(result: LabResult): void {
-  const results = getLabResults().filter(r => r.id !== result.id)
-  results.push(result)
-  results.sort((a, b) => b.drawDate.localeCompare(a.drawDate))
-  localStorage.setItem(KEYS.LAB_RESULTS, JSON.stringify(results))
+  try {
+    const results = getLabResults().filter(r => r.id !== result.id)
+    results.push(result)
+    results.sort((a, b) => b.drawDate.localeCompare(a.drawDate))
+    localStorage.setItem(KEYS.LAB_RESULTS, JSON.stringify(results))
+  } catch (e) {
+    throw new Error('Failed to save lab result — browser storage may be full.')
+  }
 }
 
 export function deleteLabResult(id: string): void {
-  const results = getLabResults().filter(r => r.id !== id)
-  localStorage.setItem(KEYS.LAB_RESULTS, JSON.stringify(results))
+  try {
+    const results = getLabResults().filter(r => r.id !== id)
+    localStorage.setItem(KEYS.LAB_RESULTS, JSON.stringify(results))
+  } catch (e) {
+    throw new Error('Failed to delete lab result — browser storage may be full.')
+  }
 }
 
 // ─── API Key ───
