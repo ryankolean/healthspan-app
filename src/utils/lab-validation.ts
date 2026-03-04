@@ -24,6 +24,7 @@ const UNIT_MISMATCH_HINTS: Record<string, { suspectBelow?: number; suspectAbove?
   ldl_c: { suspectBelow: 10 },
   triglycerides: { suspectBelow: 10 },
   testosterone_total: { suspectBelow: 5 },
+  fasting_glucose: { suspectBelow: 20 },  // Values <20 strongly suggest mmol/L entry (normal mmol/L range is 3.9–7.0)
 }
 
 interface ValidationResult {
@@ -60,24 +61,29 @@ export function validateMarkerValue(
   return { flagged: false }
 }
 
-export function computeMarkerStatus(markerId: string, value: number): MarkerStatus {
+export function computeMarkerStatus(markerId: string, value: number, sex?: 'male' | 'female'): MarkerStatus {
   const def = BLOODWORK_MARKERS.find(m => m.id === markerId)
   if (!def) return 'acceptable'
 
-  const [optLow, optHigh] = def.optimal
-  const [accLow, accHigh] = def.acceptable
+  // Use sex-variant ranges if available and sex is specified
+  const optimal = (sex === 'female' && def.sexVariant?.female)
+    ? def.sexVariant.female.optimal
+    : def.optimal
+  const acceptable = (sex === 'female' && def.sexVariant?.female)
+    ? def.sexVariant.female.acceptable
+    : def.acceptable
   const thresh = def.attentionThreshold
 
-  // Strict comparison: < and > (not <= and >=)
+  // Strict comparison: < and > (not <= and >=) for attention thresholds
   if (thresh.low !== undefined && value < thresh.low) return 'attention'
   if (thresh.high !== undefined && value > thresh.high) return 'attention'
 
-  const inOptLow = optLow === null || value >= optLow
-  const inOptHigh = optHigh === null || value <= optHigh
+  const inOptLow = optimal[0] === null || value >= optimal[0]
+  const inOptHigh = optimal[1] === null || value <= optimal[1]
   if (inOptLow && inOptHigh) return 'optimal'
 
-  const inAccLow = accLow === null || value >= accLow
-  const inAccHigh = accHigh === null || value <= accHigh
+  const inAccLow = acceptable[0] === null || value >= acceptable[0]
+  const inAccHigh = acceptable[1] === null || value <= acceptable[1]
   if (inAccLow && inAccHigh) return 'acceptable'
 
   return 'attention'
