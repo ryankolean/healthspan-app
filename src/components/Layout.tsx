@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { Activity, LayoutDashboard, Dumbbell, Apple, Moon, Brain, Pill, TestTube } from 'lucide-react'
+import { Activity, LayoutDashboard, Dumbbell, Apple, Moon, Brain, Pill, TestTube, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', active: true },
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/emotional', icon: Brain, label: 'Emotional', active: false },
   { to: '/molecules', icon: Pill, label: 'Molecules', active: false },
   { to: '/bloodwork', icon: TestTube, label: 'Bloodwork', active: false },
+  { to: '/settings', icon: Settings, label: 'Settings', active: true },
 ]
 
 export default function Layout() {
