@@ -7,7 +7,6 @@ export interface BloodMarker {
   value: number
   unit: string
   status: MarkerStatus
-  drawDate: string
   flagged?: boolean
   flagReason?: string
   confidence?: Confidence
@@ -16,6 +15,7 @@ export interface BloodMarker {
 
 export interface LabResult {
   id: string
+  /** ISO 8601 date string: YYYY-MM-DD */
   drawDate: string
   institution: string
   markers: BloodMarker[]
@@ -32,6 +32,7 @@ export interface ParsedMarker {
 
 export interface ParsedLabDoc {
   markers: ParsedMarker[]
+  /** ISO 8601 date string: YYYY-MM-DD */
   drawDate: string
   institution: string
 }

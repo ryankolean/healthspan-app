@@ -9,7 +9,6 @@ describe('bloodwork types', () => {
       value: 85,
       unit: 'mg/dL',
       status: 'optimal',
-      drawDate: '2026-03-01',
     }
     expect(marker.id).toBe('apob')
     expect(marker.status).toBe('optimal')
