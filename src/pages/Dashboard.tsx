@@ -4,6 +4,9 @@ import {
   AreaChart, Area, BarChart, Bar, CartesianGrid, Legend, ReferenceLine,
 } from 'recharts'
 import { getOuraData } from '../utils/oura-storage'
+import { getLabResults } from '../utils/lab-storage'
+import { Link } from 'react-router-dom'
+import { AlertTriangle } from 'lucide-react'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
 import { computeTrend, computeOverallScore } from '../utils/trends'
 import { fmt, fmtFull, hrs, avgArr, scoreColor, filterByRange } from '../utils/helpers'
@@ -25,6 +28,17 @@ export default function Dashboard() {
   const [range, setRange] = useState(90)
 
   const ouraData = useMemo(() => getOuraData(), [])
+
+  const labResults = useMemo(() => getLabResults(), [])
+  const latestLab = labResults[0] ?? null
+  const labStatus = useMemo(() => {
+    if (!latestLab) return null
+    const attention = latestLab.markers.filter(m => m.status === 'attention').length
+    const acceptable = latestLab.markers.filter(m => m.status === 'acceptable').length
+    if (attention > 0) return { label: 'Needs Attention', color: '#ef4444', count: attention }
+    if (acceptable > 2) return { label: 'Acceptable', color: '#f59e0b', count: acceptable }
+    return { label: 'Good', color: '#10b981', count: 0 }
+  }, [latestLab])
 
   if (!ouraData) {
     return (
@@ -169,6 +183,17 @@ export default function Dashboard() {
           <Stat label="Readiness" value={lr.score} unit="/100" color={scoreColor(lr.score)} sub={`${range}d avg: ${avgArr(readiness, 'score')}`} />
           <Stat label="Resting HR" value={lsd.lowest_hr} unit="bpm" color="#6366f1" sub={`HRV: ${lsd.avg_hrv ?? '—'} ms`} />
           <Stat label="Vascular Age" value={lcv.vascular_age} unit="yrs" color="#22d3ee" sub={`Avg: ${avgArr(cvAge, 'vascular_age')} yrs`} />
+          {latestLab && labStatus && (
+            <Link to="/bloodwork">
+              <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] py-[18px] px-5 flex-1 basis-[180px] min-w-[160px] hover:bg-white/[0.06] transition-colors cursor-pointer">
+                <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Lab Status</div>
+                <div className="text-[24px] font-bold font-mono" style={{ color: labStatus.color }}>
+                  {labStatus.label}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-1">{latestLab.drawDate} · {latestLab.markers.length} markers</div>
+              </div>
+            </Link>
+          )}
         </div>
         <ChartCard title={`Score Trends — ${range === 9999 ? 'All' : range + 'd'}`} height={250}>
           <ResponsiveContainer width="100%" height="100%">
@@ -355,6 +380,16 @@ export default function Dashboard() {
   )
 
   return (
+    <div>
+      {latestLab && labStatus && labStatus.count > 0 && (
+        <div className="mx-6 mt-6 flex items-center gap-3 bg-red-400/[0.08] border border-red-400/20 rounded-[14px] px-5 py-3">
+          <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />
+          <p className="text-sm text-red-300 flex-1">
+            {labStatus.count} lab marker{labStatus.count > 1 ? 's' : ''} need{labStatus.count === 1 ? 's' : ''} attention
+          </p>
+          <Link to="/bloodwork" className="text-xs text-red-400 hover:text-red-300 underline">View labs →</Link>
+        </div>
+      )}
     <div className="max-w-[1100px] mx-auto py-7 px-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-7 flex-wrap gap-3.5">
@@ -394,6 +429,7 @@ export default function Dashboard() {
       <div className="text-center mt-9 pt-4 border-t border-white/5 text-[10px] text-slate-600">
         PHARMA Health Intelligence — Oura Ring Data — Medicine 3.0 Framework — Summit Software Solutions LLC
       </div>
+    </div>
     </div>
   )
 }
