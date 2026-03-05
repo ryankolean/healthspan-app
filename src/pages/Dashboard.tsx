@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import { getOuraData } from '../utils/oura-storage'
 import { getLabResults } from '../utils/lab-storage'
+import { getWorkouts } from '../utils/exercise-storage'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
@@ -39,6 +40,30 @@ export default function Dashboard() {
     if (acceptable > 2) return { label: 'Acceptable', color: '#f59e0b', count: acceptable }
     return { label: 'Good', color: '#10b981', count: 0 }
   }, [latestLab])
+
+  // Exercise status
+  const exerciseWorkouts = useMemo(() => getWorkouts(), [])
+  const zone2Now = useMemo(() => {
+    function getISOWeek(d: Date) {
+      const dt = new Date(d)
+      dt.setHours(0,0,0,0)
+      dt.setDate(dt.getDate() + 3 - (dt.getDay() + 6) % 7)
+      const w1 = new Date(dt.getFullYear(), 0, 4)
+      return `${dt.getFullYear()}-W${String(1 + Math.round(((dt.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7)).padStart(2,'0')}`
+    }
+    const thisWeek = getISOWeek(new Date())
+    return exerciseWorkouts.filter(w => getISOWeek(new Date(w.date)) === thisWeek)
+      .reduce((s, w) => s + (w.zone2Min ?? 0), 0)
+  }, [exerciseWorkouts])
+  const exerciseLabel = zone2Now >= 180 ? 'On Track' : zone2Now >= 90 ? 'Building' : 'Below Target'
+  const exerciseColor = zone2Now >= 180 ? '#10b981' : zone2Now >= 90 ? '#f59e0b' : '#ef4444'
+  const thisWeekWorkoutCount = useMemo(() => {
+    const now = new Date()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    startOfWeek.setHours(0,0,0,0)
+    return exerciseWorkouts.filter(w => new Date(w.date) >= startOfWeek).length
+  }, [exerciseWorkouts])
 
   if (!ouraData) {
     return (
@@ -194,6 +219,13 @@ export default function Dashboard() {
               </div>
             </Link>
           )}
+          <Link to="/exercise" className="block">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] py-[18px] px-5 flex-1 basis-[180px] min-w-[160px] hover:bg-white/[0.06] transition-colors cursor-pointer">
+              <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Exercise</div>
+              <div className="text-[24px] font-bold font-mono" style={{ color: exerciseColor }}>{exerciseLabel}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{zone2Now}/180 min Zone 2 this week · {thisWeekWorkoutCount} workouts</div>
+            </div>
+          </Link>
         </div>
         <ChartCard title={`Score Trends — ${range === 9999 ? 'All' : range + 'd'}`} height={250}>
           <ResponsiveContainer width="100%" height="100%">
