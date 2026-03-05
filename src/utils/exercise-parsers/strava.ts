@@ -23,7 +23,7 @@ function stravaTypeToExerciseType(sportType: string): ExerciseType {
 }
 
 export function parseStravaActivities(activities: StravaActivity[]): { workouts: ExerciseWorkout[]; vo2max: VO2MaxEntry[] } {
-  if (!activities.length) return { workouts: [], vo2max: [] }
+  if (!activities?.length) return { workouts: [], vo2max: [] }
 
   const workouts: ExerciseWorkout[] = activities.map(a => {
     const distanceKm = a.distance && a.distance > 0 ? a.distance / 1000 : undefined

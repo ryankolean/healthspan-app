@@ -1,13 +1,26 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { ExerciseWorkout, ExerciseSet, VO2MaxEntry } from '../../types/exercise'
 
+function splitCsvLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (const ch of line) {
+    if (ch === '"') { inQuotes = !inQuotes }
+    else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = '' }
+    else { current += ch }
+  }
+  result.push(current.trim())
+  return result
+}
+
 function parseCsvRows(csv: string): Record<string, string>[] {
   const lines = csv.trim().split('\n')
   if (lines.length < 2) return []
-  const headers = lines[0].split(',').map(h => h.trim())
+  const headers = splitCsvLine(lines[0])
   return lines.slice(1).map(line => {
-    const values = line.split(',')
-    return Object.fromEntries(headers.map((h, i) => [h, (values[i] ?? '').trim()]))
+    const values = splitCsvLine(line)
+    return Object.fromEntries(headers.map((h, i) => [h, values[i] ?? '']))
   })
 }
 
@@ -31,9 +44,11 @@ export function parseHevyCsv(csv: string): { workouts: ExerciseWorkout[]; vo2max
     const weightKg = weightRaw ? parseFloat(weightRaw) : undefined
     const reps = repsRaw ? parseInt(repsRaw, 10) : undefined
     const durationSec = durationRaw ? parseInt(durationRaw, 10) : undefined
+    const setOrderRaw = row['Set Order']
+    const setIndex = setOrderRaw ? parseInt(setOrderRaw, 10) - 1 : 0
     group.sets.push({
       exercise: row['Exercise Name'],
-      setIndex: parseInt(row['Set Order'], 10) - 1,
+      setIndex,
       weightKg: weightKg !== undefined && !isNaN(weightKg) ? weightKg : undefined,
       reps: reps !== undefined && !isNaN(reps) ? reps : undefined,
       durationSec: durationSec !== undefined && !isNaN(durationSec) ? durationSec : undefined,

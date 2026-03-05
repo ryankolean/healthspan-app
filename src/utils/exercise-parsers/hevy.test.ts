@@ -49,4 +49,11 @@ describe('parseHevyCsv', () => {
     expect(result.workouts[0].sets![0].reps).toBeUndefined()
     expect(result.workouts[0].sets![0].durationSec).toBe(120)
   })
+
+  it('handles workout names containing commas (quoted CSV fields)', () => {
+    const csv = `Date,Workout Name,Exercise Name,Set Order,Weight,Reps,Duration\n2026-03-01,"Push, Chest & Tris",Bench Press,1,80,10,`
+    const result = parseHevyCsv(csv)
+    expect(result.workouts).toHaveLength(1)
+    expect(result.workouts[0].activityName).toBe('Push, Chest & Tris')
+  })
 })
