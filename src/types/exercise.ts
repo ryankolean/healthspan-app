@@ -52,7 +52,7 @@ export interface ExerciseSettings {
   }
 }
 
-export const DEFAULT_EXERCISE_SETTINGS: ExerciseSettings = {
+export const DEFAULT_EXERCISE_SETTINGS = {
   priorityMode: 'global',
   globalPriority: ['strava', 'hevy', 'apple_health', 'oura', 'manual'],
-}
+} as const satisfies ExerciseSettings
