@@ -10,19 +10,24 @@ export default function Settings() {
   const [showKey, setShowKey] = useState(false)
   const [ouraImported, setOuraImported] = useState(false)
   const [ouraError, setOuraError] = useState('')
+  const [apiKeyError, setApiKeyError] = useState('')
+  const [hasSavedKey, setHasSavedKey] = useState(false)
+  const [justCleared, setJustCleared] = useState(false)
 
   useEffect(() => {
     const existing = getApiKey()
     if (existing) setApiKeyState(existing)
     setOuraImported(hasOuraData())
+    setHasSavedKey(getApiKey() !== null)
   }, [])
 
   function handleSaveKey() {
     if (!apiKey.startsWith('sk-ant-')) {
-      alert('Key should start with sk-ant- — double-check you copied it correctly.')
+      setApiKeyError('Key should start with sk-ant- — double-check you copied it correctly.')
       return
     }
     setApiKey(apiKey)
+    setHasSavedKey(true)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
@@ -30,6 +35,9 @@ export default function Settings() {
   function handleClearKey() {
     clearApiKey()
     setApiKeyState('')
+    setHasSavedKey(false)
+    setJustCleared(true)
+    setTimeout(() => setJustCleared(false), 2000)
   }
 
   function handleOuraImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -65,7 +73,8 @@ export default function Settings() {
         </div>
 
         <p className="text-sm text-gray-400 mb-5">
-          Required for parsing lab documents with Claude Vision. Your key is stored only in your browser and never sent anywhere except Anthropic's API.
+          Required for parsing lab documents with Claude Vision. Your key is stored only in your browser's local storage and sent only to Anthropic's API — never to any other server. For best practice, create a key with a{' '}
+          <span className="text-gray-300">monthly spend limit</span> in the Anthropic console.
         </p>
 
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 mb-5 space-y-2">
@@ -89,7 +98,7 @@ export default function Settings() {
             <input
               type={showKey ? 'text' : 'password'}
               value={apiKey}
-              onChange={e => setApiKeyState(e.target.value)}
+              onChange={e => { setApiKeyState(e.target.value); setApiKeyError('') }}
               placeholder="sk-ant-..."
               className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-brand-500/50 pr-10"
             />
@@ -106,7 +115,7 @@ export default function Settings() {
           >
             {saved ? '✓ Saved' : 'Save'}
           </button>
-          {apiKey && (
+          {hasSavedKey && (
             <button
               onClick={handleClearKey}
               className="px-4 py-2.5 bg-white/[0.06] hover:bg-white/[0.1] text-gray-400 text-sm rounded-xl transition-colors"
@@ -115,6 +124,18 @@ export default function Settings() {
             </button>
           )}
         </div>
+        {apiKeyError && (
+          <div className="flex items-center gap-2 text-sm text-red-400 mt-2">
+            <AlertCircle size={14} />
+            {apiKeyError}
+          </div>
+        )}
+        {justCleared && (
+          <div className="flex items-center gap-2 text-sm text-emerald-400 mt-2">
+            <CheckCircle size={14} />
+            API key cleared
+          </div>
+        )}
       </section>
 
       {/* ─── Oura Data Import Section ─── */}
