@@ -4,8 +4,12 @@ export interface VO2MaxTargets {
   elite: number         // top 2.5%
 }
 
+interface VO2MaxBracket extends VO2MaxTargets {
+  minAge: number
+}
+
 // Source: Attia, Outlive — Cardiorespiratory Fitness Reference Data
-const MALE_TARGETS: Array<{ minAge: number; aboveAverage: number; superior: number; elite: number }> = [
+const MALE_TARGETS: VO2MaxBracket[] = [
   { minAge: 20, aboveAverage: 42, superior: 52, elite: 60 },
   { minAge: 30, aboveAverage: 40, superior: 50, elite: 58 },
   { minAge: 40, aboveAverage: 37, superior: 47, elite: 54 },
@@ -14,7 +18,7 @@ const MALE_TARGETS: Array<{ minAge: number; aboveAverage: number; superior: numb
   { minAge: 65, aboveAverage: 26, superior: 33, elite: 40 },
 ]
 
-const FEMALE_TARGETS: Array<{ minAge: number; aboveAverage: number; superior: number; elite: number }> = [
+const FEMALE_TARGETS: VO2MaxBracket[] = [
   { minAge: 20, aboveAverage: 36, superior: 45, elite: 53 },
   { minAge: 30, aboveAverage: 34, superior: 43, elite: 50 },
   { minAge: 40, aboveAverage: 32, superior: 41, elite: 47 },
@@ -28,6 +32,6 @@ export const VO2MAX_TARGETS = { male: MALE_TARGETS, female: FEMALE_TARGETS }
 export function getVO2MaxTargets(age: number, sex: 'male' | 'female'): VO2MaxTargets {
   const table = sex === 'male' ? MALE_TARGETS : FEMALE_TARGETS
   // Find the highest bracket whose minAge is <= age
-  const bracket = [...table].reverse().find(b => age >= b.minAge) ?? table[table.length - 1]
+  const bracket = [...table].reverse().find(b => age >= b.minAge) ?? table[0]
   return { aboveAverage: bracket.aboveAverage, superior: bracket.superior, elite: bracket.elite }
 }

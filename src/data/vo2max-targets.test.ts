@@ -15,7 +15,9 @@ describe('getVO2MaxTargets', () => {
 
   it('returns targets for a 50-year-old male', () => {
     const t = getVO2MaxTargets(50, 'male')
-    expect(t).toBeDefined()
+    expect(t.aboveAverage).toBe(34)
+    expect(t.superior).toBe(42)
+    expect(t.elite).toBe(50)
   })
 
   it('returns targets for edge age 20', () => {
@@ -25,6 +27,8 @@ describe('getVO2MaxTargets', () => {
 
   it('returns targets for age 70 (uses 65+ bracket)', () => {
     const t = getVO2MaxTargets(70, 'male')
-    expect(t).toBeDefined()
+    expect(t.aboveAverage).toBe(26)
+    expect(t.superior).toBe(33)
+    expect(t.elite).toBe(40)
   })
 })
