@@ -13,6 +13,8 @@ export default function Settings() {
   const [apiKeyError, setApiKeyError] = useState('')
   const [hasSavedKey, setHasSavedKey] = useState(false)
   const [justCleared, setJustCleared] = useState(false)
+  const [userAge, setUserAge] = useState(() => localStorage.getItem('healthspan:userAge') ?? '35')
+  const [userSex, setUserSex] = useState(() => localStorage.getItem('healthspan:userSex') ?? 'male')
 
   useEffect(() => {
     const existing = getApiKey()
@@ -38,6 +40,15 @@ export default function Settings() {
     setHasSavedKey(false)
     setJustCleared(true)
     setTimeout(() => setJustCleared(false), 2000)
+  }
+
+  function saveAge(val: string) {
+    setUserAge(val)
+    localStorage.setItem('healthspan:userAge', val)
+  }
+  function saveSex(val: string) {
+    setUserSex(val)
+    localStorage.setItem('healthspan:userSex', val)
   }
 
   function handleOuraImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -184,6 +195,35 @@ export default function Settings() {
           {ouraImported ? 'Replace Oura Data' : 'Import Oura JSON'}
           <input type="file" accept=".json" onChange={handleOuraImport} className="hidden" />
         </label>
+      </section>
+
+      {/* ─── Exercise Settings ─── */}
+      <section className="bg-white/[0.04] border border-white/[0.08] rounded-[18px] p-6 mt-6">
+        <h2 className="text-sm font-semibold text-gray-300">Exercise</h2>
+        <p className="text-xs text-gray-500 mt-1 mb-4">Used for max HR calculation (Zone 2/5) and VO2 max longevity target lookup.</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Age</label>
+            <input
+              type="number"
+              min={18} max={100}
+              value={userAge}
+              onChange={e => saveAge(e.target.value)}
+              className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-gray-300 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Biological Sex</label>
+            <select
+              value={userSex}
+              onChange={e => saveSex(e.target.value)}
+              className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-gray-300 focus:outline-none"
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
       </section>
     </div>
   )
