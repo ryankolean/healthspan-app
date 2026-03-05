@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Settings from './pages/Settings'
 import Bloodwork from './pages/Bloodwork'
 import Exercise from './pages/Exercise'
+import Sleep from './pages/Sleep'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/bloodwork" element={<Bloodwork />} />
         <Route path="/exercise" element={<Exercise />} />
+        <Route path="/sleep" element={<Sleep />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
