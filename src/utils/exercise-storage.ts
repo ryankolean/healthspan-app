@@ -51,9 +51,12 @@ export function getFlaggedConflicts(): ExerciseWorkout[] {
 
 export function resolveConflict(keepId: string, discardId: string): void {
   const all = getAllWorkoutsRaw()
+  const keepExists = all.some(w => w.id === keepId)
+  if (!keepExists) return
+  const updated = all
     .filter(w => w.id !== discardId)
     .map(w => w.id === keepId ? { ...w, flaggedConflict: false, resolvedBy: 'manual' as const } : w)
-  saveWorkouts(all)
+  saveWorkouts(updated)
 }
 
 // ─── Conflict Detection + Merge ───

@@ -9,6 +9,7 @@ import {
   getExerciseSettings,
   saveExerciseSettings,
   mergeWorkouts,
+  importWorkouts,
 } from './exercise-storage'
 import type { ExerciseWorkout, VO2MaxEntry, ExerciseSettings } from '../types/exercise'
 
@@ -96,6 +97,15 @@ describe('getFlaggedConflicts / resolveConflict', () => {
     expect(all[0].flaggedConflict).toBe(false)
     expect(all[0].resolvedBy).toBe('manual')
   })
+
+  it('resolveConflict is a no-op when keepId does not exist', () => {
+    saveWorkouts([makeWorkout({ id: 'only', flaggedConflict: true })])
+    resolveConflict('nonexistent', 'only')
+    // Should be unchanged — keepId not found, no-op
+    const all = JSON.parse(localStorage.getItem('healthspan:exercise:workouts') ?? '[]')
+    expect(all).toHaveLength(1)
+    expect(all[0].id).toBe('only')
+  })
 })
 
 describe('mergeWorkouts', () => {
@@ -125,6 +135,35 @@ describe('mergeWorkouts', () => {
     const flagged = result.filter(w => w.flaggedConflict)
     expect(flagged).toHaveLength(1)
     expect(flagged[0].source).toBe('oura') // lower priority gets flagged
+  })
+})
+
+describe('importWorkouts', () => {
+  it('merges incoming workouts into existing store', () => {
+    const existing = makeWorkout({ id: 'e1', source: 'strava', sourceId: 's1' })
+    saveWorkouts([existing])
+    const incoming = [makeWorkout({ id: 'n1', source: 'strava', sourceId: 's2' })]
+    importWorkouts(incoming)
+    expect(getWorkouts()).toHaveLength(2)
+  })
+
+  it('skips exact duplicates (same source + sourceId)', () => {
+    const existing = makeWorkout({ id: 'e1', source: 'strava', sourceId: 's1' })
+    saveWorkouts([existing])
+    importWorkouts([makeWorkout({ id: 'n1', source: 'strava', sourceId: 's1' })])
+    expect(getWorkouts()).toHaveLength(1)
+  })
+
+  it('uses getAllWorkoutsRaw (includes flagged) when reading existing for merge', () => {
+    // If importWorkouts used getWorkouts() instead of getAllWorkoutsRaw(),
+    // flagged entries would be invisible and re-imported as clean entries
+    const flagged = makeWorkout({ id: 'f1', source: 'oura', sourceId: 'o1', flaggedConflict: true })
+    saveWorkouts([flagged])
+    // Re-importing the same sourceId should still deduplicate (flagged entry exists)
+    importWorkouts([makeWorkout({ id: 'n1', source: 'oura', sourceId: 'o1' })])
+    // Should still be 1 entry (duplicate skipped), not 2
+    const all = JSON.parse(localStorage.getItem('healthspan:exercise:workouts') ?? '[]')
+    expect(all).toHaveLength(1)
   })
 })
 
