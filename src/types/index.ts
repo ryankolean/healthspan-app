@@ -23,10 +23,10 @@ export interface SleepDetail {
   efficiency?: number
   avg_breath?: number
   // Computed
-  deep_h?: number
-  rem_h?: number
-  light_h?: number
-  total_h?: number
+  deep_h?: number | null
+  rem_h?: number | null
+  light_h?: number | null
+  total_h?: number | null
 }
 
 export interface DailyActivity {
