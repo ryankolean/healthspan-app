@@ -6,6 +6,7 @@ import {
 import { getOuraData } from '../utils/oura-storage'
 import { getLabResults } from '../utils/lab-storage'
 import { getWorkouts } from '../utils/exercise-storage'
+import { getSleepNights } from '../utils/sleep-storage'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
@@ -64,6 +65,21 @@ export default function Dashboard() {
     startOfWeek.setHours(0,0,0,0)
     return exerciseWorkouts.filter(w => new Date(w.date) >= startOfWeek).length
   }, [exerciseWorkouts])
+
+  // Sleep status
+  const sleepNights = useMemo(() => getSleepNights(), [])
+  const avgTotalSleepMin = useMemo(() => {
+    const now = new Date()
+    const weekAgo = new Date(now)
+    weekAgo.setDate(now.getDate() - 7)
+    const cutoff = weekAgo.toISOString().slice(0, 10)
+    const recent = sleepNights.filter(n => n.date >= cutoff)
+    if (recent.length === 0) return 0
+    return Math.round(recent.reduce((s, n) => s + (n.totalMin ?? 0), 0) / recent.length)
+  }, [sleepNights])
+  const sleepHrs = (avgTotalSleepMin / 60).toFixed(1)
+  const sleepLabel = avgTotalSleepMin >= 420 ? 'On Track' : avgTotalSleepMin >= 360 ? 'Building' : 'Below Target'
+  const sleepColor = avgTotalSleepMin >= 420 ? '#10b981' : avgTotalSleepMin >= 360 ? '#f59e0b' : '#ef4444'
 
   if (!ouraData) {
     return (
@@ -224,6 +240,13 @@ export default function Dashboard() {
               <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Exercise</div>
               <div className="text-[24px] font-bold font-mono" style={{ color: exerciseColor }}>{exerciseLabel}</div>
               <div className="text-[11px] text-slate-500 mt-1">{zone2Now}/180 min Zone 2 this week · {thisWeekWorkoutCount} workouts</div>
+            </div>
+          </Link>
+          <Link to="/sleep" className="block">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] py-[18px] px-5 flex-1 basis-[180px] min-w-[160px] hover:bg-white/[0.06] transition-colors cursor-pointer">
+              <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Sleep</div>
+              <div className="text-[24px] font-bold font-mono" style={{ color: sleepColor }}>{sleepLabel}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{sleepHrs}/7 hrs avg this week · {sleepNights.length} nights</div>
             </div>
           </Link>
         </div>
