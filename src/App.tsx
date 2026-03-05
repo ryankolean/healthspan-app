@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Settings from './pages/Settings'
 import Bloodwork from './pages/Bloodwork'
+import Exercise from './pages/Exercise'
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/bloodwork" element={<Bloodwork />} />
+        <Route path="/exercise" element={<Exercise />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
