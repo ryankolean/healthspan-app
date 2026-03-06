@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/healthspan-app/',  // GitHub Pages base path — change to '/' for custom domain
+  base: process.env.NODE_ENV === 'production' ? '/healthspan-app/' : '/',
   resolve: {
     alias: {
       '@': '/src',
