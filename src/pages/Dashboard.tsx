@@ -7,6 +7,7 @@ import { getOuraData } from '../utils/oura-storage'
 import { getLabResults } from '../utils/lab-storage'
 import { getWorkouts } from '../utils/exercise-storage'
 import { getSleepNights } from '../utils/sleep-storage'
+import { getEmotionalEntries } from '../utils/emotional-storage'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
@@ -80,6 +81,21 @@ export default function Dashboard() {
   const sleepHrs = (avgTotalSleepMin / 60).toFixed(1)
   const sleepLabel = avgTotalSleepMin >= 420 ? 'On Track' : avgTotalSleepMin >= 360 ? 'Building' : 'Below Target'
   const sleepColor = avgTotalSleepMin >= 420 ? '#10b981' : avgTotalSleepMin >= 360 ? '#f59e0b' : '#ef4444'
+
+  // Emotional status
+  const emotionalEntries = useMemo(() => getEmotionalEntries(), [])
+  const avgMood = useMemo(() => {
+    const now = new Date()
+    const weekAgo = new Date(now)
+    weekAgo.setDate(now.getDate() - 7)
+    const cutoff = weekAgo.toISOString().slice(0, 10)
+    const recent = emotionalEntries.filter(e => e.date >= cutoff)
+    if (recent.length === 0) return 0
+    const moods = recent.map(e => e.mood).filter((v): v is number => v != null)
+    return moods.length > 0 ? Math.round((moods.reduce((s, v) => s + v, 0) / moods.length) * 10) / 10 : 0
+  }, [emotionalEntries])
+  const emotionalLabel = avgMood >= 4 ? 'On Track' : avgMood >= 3 ? 'Building' : avgMood > 0 ? 'Below Target' : 'No Data'
+  const emotionalColor = avgMood >= 4 ? '#10b981' : avgMood >= 3 ? '#f59e0b' : '#ef4444'
 
   if (!ouraData) {
     return (
@@ -247,6 +263,13 @@ export default function Dashboard() {
               <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Sleep</div>
               <div className="text-[24px] font-bold font-mono" style={{ color: sleepColor }}>{sleepLabel}</div>
               <div className="text-[11px] text-slate-500 mt-1">{sleepHrs}/7 hrs avg this week · {sleepNights.length} nights</div>
+            </div>
+          </Link>
+          <Link to="/emotional" className="block">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] py-[18px] px-5 flex-1 basis-[180px] min-w-[160px] hover:bg-white/[0.06] transition-colors cursor-pointer">
+              <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Emotional</div>
+              <div className="text-[24px] font-bold font-mono" style={{ color: emotionalColor }}>{emotionalLabel}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{avgMood > 0 ? `${avgMood}/5 mood avg` : 'Start logging'} · {emotionalEntries.length} entries</div>
             </div>
           </Link>
         </div>
