@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { to: '/nutrition', icon: Apple, label: 'Nutrition', active: true },
   { to: '/sleep', icon: Moon, label: 'Sleep', active: true },
   { to: '/emotional', icon: Brain, label: 'Emotional', active: true },
-  { to: '/molecules', icon: Pill, label: 'Molecules', active: false },
+  { to: '/molecules', icon: Pill, label: 'Molecules', active: true },
   { to: '/bloodwork', icon: TestTube, label: 'Bloodwork', active: true },
   { to: '/settings', icon: Settings, label: 'Settings', active: true },
 ]
