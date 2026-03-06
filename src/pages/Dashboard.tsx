@@ -8,6 +8,8 @@ import { getLabResults } from '../utils/lab-storage'
 import { getWorkouts } from '../utils/exercise-storage'
 import { getSleepNights } from '../utils/sleep-storage'
 import { getEmotionalEntries } from '../utils/emotional-storage'
+import { getNutritionEntries, getNutritionSettings, getDailyTotals } from '../utils/nutrition-storage'
+import { getProteinTarget, getNutritionStatus } from '../data/nutrition-targets'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
@@ -96,6 +98,24 @@ export default function Dashboard() {
   }, [emotionalEntries])
   const emotionalLabel = avgMood >= 4 ? 'On Track' : avgMood >= 3 ? 'Building' : avgMood > 0 ? 'Below Target' : 'No Data'
   const emotionalColor = avgMood >= 4 ? '#10b981' : avgMood >= 3 ? '#f59e0b' : '#ef4444'
+
+  // Nutrition status
+  const nutritionSettings = useMemo(() => getNutritionSettings(), [])
+  const nutritionEntries = useMemo(() => getNutritionEntries(), [])
+  const avgProtein = useMemo(() => {
+    const now = new Date()
+    const weekAgo = new Date(now)
+    weekAgo.setDate(now.getDate() - 7)
+    const cutoff = weekAgo.toISOString().slice(0, 10)
+    const dates = [...new Set(nutritionEntries.filter(e => e.date >= cutoff).map(e => e.date))]
+    if (dates.length === 0) return 0
+    const totals = dates.map(d => getDailyTotals(d).proteinG)
+    return Math.round(totals.reduce((s, v) => s + v, 0) / totals.length)
+  }, [nutritionEntries])
+  const proteinTarget = useMemo(() => getProteinTarget(nutritionSettings), [nutritionSettings])
+  const nutritionStatus = useMemo(() => getNutritionStatus('protein', avgProtein, nutritionSettings), [avgProtein, nutritionSettings])
+  const nutritionLabel = nutritionStatus === 'green' ? 'On Track' : nutritionStatus === 'amber' ? 'Building' : avgProtein > 0 ? 'Below Target' : 'No Data'
+  const nutritionColor = nutritionStatus === 'green' ? '#10b981' : nutritionStatus === 'amber' ? '#f59e0b' : '#ef4444'
 
   if (!ouraData) {
     return (
@@ -270,6 +290,13 @@ export default function Dashboard() {
               <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Emotional</div>
               <div className="text-[24px] font-bold font-mono" style={{ color: emotionalColor }}>{emotionalLabel}</div>
               <div className="text-[11px] text-slate-500 mt-1">{avgMood > 0 ? `${avgMood}/5 mood avg` : 'Start logging'} · {emotionalEntries.length} entries</div>
+            </div>
+          </Link>
+          <Link to="/nutrition" className="block">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] py-[18px] px-5 flex-1 basis-[180px] min-w-[160px] hover:bg-white/[0.06] transition-colors cursor-pointer">
+              <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Nutrition</div>
+              <div className="text-[24px] font-bold font-mono" style={{ color: nutritionColor }}>{nutritionLabel}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{avgProtein > 0 ? `${avgProtein}/${proteinTarget}g protein avg` : 'Start logging'} · {nutritionEntries.length} meals</div>
             </div>
           </Link>
         </div>
