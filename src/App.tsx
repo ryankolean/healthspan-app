@@ -6,6 +6,7 @@ import Bloodwork from './pages/Bloodwork'
 import Exercise from './pages/Exercise'
 import Sleep from './pages/Sleep'
 import Emotional from './pages/Emotional'
+import Nutrition from './pages/Nutrition'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/exercise" element={<Exercise />} />
         <Route path="/sleep" element={<Sleep />} />
         <Route path="/emotional" element={<Emotional />} />
+        <Route path="/nutrition" element={<Nutrition />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>

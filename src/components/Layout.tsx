@@ -4,7 +4,7 @@ import { Activity, LayoutDashboard, Dumbbell, Apple, Moon, Brain, Pill, TestTube
 const NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', active: true },
   { to: '/exercise', icon: Dumbbell, label: 'Exercise', active: true },
-  { to: '/nutrition', icon: Apple, label: 'Nutrition', active: false },
+  { to: '/nutrition', icon: Apple, label: 'Nutrition', active: true },
   { to: '/sleep', icon: Moon, label: 'Sleep', active: true },
   { to: '/emotional', icon: Brain, label: 'Emotional', active: true },
   { to: '/molecules', icon: Pill, label: 'Molecules', active: false },
