@@ -10,6 +10,8 @@ import { getSleepNights } from '../utils/sleep-storage'
 import { getEmotionalEntries } from '../utils/emotional-storage'
 import { getNutritionEntries, getNutritionSettings, getDailyTotals } from '../utils/nutrition-storage'
 import { getProteinTarget, getNutritionStatus } from '../data/nutrition-targets'
+import { getMoleculeEntries, getDefinitions, getDailyAdherence } from '../utils/molecules-storage'
+import { getAdherenceStatus } from '../data/molecules-targets'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
@@ -116,6 +118,24 @@ export default function Dashboard() {
   const nutritionStatus = useMemo(() => getNutritionStatus('protein', avgProtein, nutritionSettings), [avgProtein, nutritionSettings])
   const nutritionLabel = nutritionStatus === 'green' ? 'On Track' : nutritionStatus === 'amber' ? 'Building' : avgProtein > 0 ? 'Below Target' : 'No Data'
   const nutritionColor = nutritionStatus === 'green' ? '#10b981' : nutritionStatus === 'amber' ? '#f59e0b' : '#ef4444'
+
+  // Molecules status
+  const moleculeDefinitions = useMemo(() => getDefinitions(), [])
+  const moleculeEntries = useMemo(() => getMoleculeEntries(), [])
+  const avgAdherence = useMemo(() => {
+    const now = new Date()
+    const weekAgo = new Date(now)
+    weekAgo.setDate(now.getDate() - 7)
+    const cutoff = weekAgo.toISOString().slice(0, 10)
+    const dates = [...new Set(moleculeEntries.filter(e => e.date >= cutoff).map(e => e.date))]
+    if (dates.length === 0 || moleculeDefinitions.filter(d => d.active).length === 0) return 0
+    const adherences = dates.map(d => getDailyAdherence(d).percentage)
+    return Math.round(adherences.reduce((s, v) => s + v, 0) / adherences.length)
+  }, [moleculeEntries, moleculeDefinitions])
+  const moleculesStatus = useMemo(() => getAdherenceStatus(avgAdherence), [avgAdherence])
+  const moleculesLabel = moleculesStatus === 'green' ? 'On Track' : moleculesStatus === 'amber' ? 'Building' : avgAdherence > 0 ? 'Below Target' : 'No Data'
+  const moleculesColor = moleculesStatus === 'green' ? '#10b981' : moleculesStatus === 'amber' ? '#f59e0b' : '#ef4444'
+  const todayAdherence = useMemo(() => getDailyAdherence(new Date().toISOString().slice(0, 10)), [moleculeEntries])
 
   if (!ouraData) {
     return (
@@ -297,6 +317,13 @@ export default function Dashboard() {
               <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Nutrition</div>
               <div className="text-[24px] font-bold font-mono" style={{ color: nutritionColor }}>{nutritionLabel}</div>
               <div className="text-[11px] text-slate-500 mt-1">{avgProtein > 0 ? `${avgProtein}/${proteinTarget}g protein avg` : 'Start logging'} · {nutritionEntries.length} meals</div>
+            </div>
+          </Link>
+          <Link to="/molecules" className="block">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] py-[18px] px-5 flex-1 basis-[180px] min-w-[160px] hover:bg-white/[0.06] transition-colors cursor-pointer">
+              <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Molecules</div>
+              <div className="text-[24px] font-bold font-mono" style={{ color: moleculesColor }}>{moleculesLabel}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{avgAdherence > 0 ? `${avgAdherence}% adherence` : 'Start logging'} · {todayAdherence.taken}/{todayAdherence.total} today</div>
             </div>
           </Link>
         </div>
