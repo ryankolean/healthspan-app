@@ -232,8 +232,7 @@ export function clearDemoData(): void {
 // ─── Helpers ───
 
 function dateStr(daysAgo: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - daysAgo)
+  const d = new Date(Date.now() - daysAgo * 86400000)
   return d.toISOString().slice(0, 10)
 }
 
@@ -494,7 +493,7 @@ function generateExerciseWorkouts(): ExerciseWorkout[] {
       const splitName = strengthSplits[workouts.filter(w => w.type === 'strength').length % 3]
       const durationMin = jitter(60, 15)
       workouts.push({
-        id: `demo-ex-${day}`,
+        id: `demo-ex-${day}-strength`,
         source: 'manual',
         sourceId: `demo-strength-${day}`,
         date: day,
@@ -520,7 +519,7 @@ function generateExerciseWorkouts(): ExerciseWorkout[] {
       const activityName = isLongRun ? 'Long Zone 2 Run' : dayOfWeek === 3 ? 'Cycling' : 'Zone 2 Run'
       const avgHr = jitter(142, 8)
       workouts.push({
-        id: `demo-ex-${day}`,
+        id: `demo-ex-${day}-cardio`,
         source: 'manual',
         sourceId: `demo-cardio-${day}`,
         date: day,
