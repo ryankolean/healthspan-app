@@ -256,40 +256,48 @@ function pick<T>(arr: T[]): T {
 
 // ─── Oura Data ───
 
-function generateOuraData(): OuraData {
+function generateOuraData(traits: PersonaTraits): OuraData {
   const days = Array.from({ length: 90 }, (_, i) => dateStr(89 - i))
+
+  const sleepScoreBase = traits.sleepScoreBase ?? 87
+  const readinessBase = traits.readinessBase ?? 86
+  const activityBase = traits.activityBase ?? 85
+  const restingHr = traits.restingHr ?? 50
+  const hrvBase = traits.hrv ?? 90
 
   const ouraWorkoutActivities = ['Running', 'Cycling', 'Walking', 'Yoga']
 
   return {
     sleep: days.map(day => ({
       day,
-      score: clamp(jitter(87, 8), 50, 100),
-      deep: clamp(jitter(85, 8), 40, 100),
-      rem: clamp(jitter(83, 8), 40, 100),
-      efficiency: clamp(jitter(88, 5), 60, 100),
+      score: clamp(jitter(sleepScoreBase, 8), 50, 100),
+      deep: clamp(jitter(sleepScoreBase - 2, 8), 40, 100),
+      rem: clamp(jitter(sleepScoreBase - 4, 8), 40, 100),
+      efficiency: clamp(jitter(sleepScoreBase + 1, 5), 60, 100),
       latency: clamp(jitter(80, 10), 30, 100),
-      total: clamp(jitter(88, 6), 50, 100),
-      restfulness: clamp(jitter(82, 8), 40, 100),
+      total: clamp(jitter(sleepScoreBase + 1, 6), 50, 100),
+      restfulness: clamp(jitter(sleepScoreBase - 5, 8), 40, 100),
     })),
 
     sleepDetail: days.map(day => {
-      const total_s = jitter(27000, 1800)
-      const deep_s = jitter(5400, 900)
+      const totalSleepMin = traits.totalSleepMin ?? 455
+      const total_s = jitter(totalSleepMin * 60, 1800)
+      const deepMinBase = traits.deepMin ?? 90
+      const deep_s = jitter(deepMinBase * 60, 900)
       const rem_s = jitter(6300, 900)
       const awake_s = jitter(1200, 300)
       const light_s = Math.max(0, total_s - deep_s - rem_s - awake_s)
-      const lowest_hr = jitter(48, 4)
+      const lowest_hr = jitter(restingHr - 2, 4)
       return {
         day,
         total_s: Math.max(18000, total_s),
         deep_s: Math.max(1800, deep_s),
         rem_s: Math.max(1800, rem_s),
         light_s,
-        efficiency: clamp(jitter(88, 5), 60, 100),
-        avg_hrv: clamp(jitter(90, 15), 50, 150),
-        lowest_hr: clamp(lowest_hr, 38, 65),
-        avg_hr: clamp(lowest_hr + jitter(5, 2), 40, 70),
+        efficiency: clamp(jitter(sleepScoreBase + 1, 5), 60, 100),
+        avg_hrv: clamp(jitter(hrvBase, 15), 20, 200),
+        lowest_hr: clamp(lowest_hr, 35, 80),
+        avg_hr: clamp(lowest_hr + jitter(5, 2), 37, 85),
         avg_breath: clamp(jitterF(13.5, 1.0, 1), 10, 20),
       }
     }),
@@ -299,7 +307,7 @@ function generateOuraData(): OuraData {
       const active_cal = clamp(jitter(550, 100), 200, 1000)
       return {
         day,
-        score: clamp(jitter(85, 10), 40, 100),
+        score: clamp(jitter(activityBase, 10), 40, 100),
         steps,
         active_cal,
         total_cal: active_cal + jitter(1800, 100),
@@ -312,14 +320,14 @@ function generateOuraData(): OuraData {
 
     readiness: days.map(day => ({
       day,
-      score: clamp(jitter(86, 8), 50, 100),
+      score: clamp(jitter(readinessBase, 8), 50, 100),
       temp_dev: clamp(jitterF(0.0, 0.3, 2), -1.5, 1.5),
-      hrv_balance: clamp(jitter(84, 8), 40, 100),
-      recovery: clamp(jitter(85, 8), 40, 100),
-      rhr: clamp(jitter(50, 4), 38, 65),
-      body_temp: clamp(jitter(88, 5), 50, 100),
-      prev_night: clamp(jitter(84, 8), 40, 100),
-      activity_bal: clamp(jitter(82, 8), 40, 100),
+      hrv_balance: clamp(jitter(readinessBase - 2, 8), 40, 100),
+      recovery: clamp(jitter(readinessBase - 1, 8), 40, 100),
+      rhr: clamp(jitter(restingHr, 4), 35, 80),
+      body_temp: clamp(jitter(readinessBase + 2, 5), 50, 100),
+      prev_night: clamp(jitter(readinessBase - 2, 8), 40, 100),
+      activity_bal: clamp(jitter(readinessBase - 4, 8), 40, 100),
     })),
 
     spo2: days.map(day => ({
@@ -340,7 +348,7 @@ function generateOuraData(): OuraData {
 
     cvAge: days.map(day => ({
       day,
-      vascular_age: clamp(jitter(27, 2), 22, 33),
+      vascular_age: clamp(jitter(restingHr <= 50 ? 27 : restingHr <= 60 ? 32 : 38, 2), 22, 50),
     })),
 
     workouts: days
@@ -363,8 +371,8 @@ function generateOuraData(): OuraData {
       return {
         day,
         level: r < 0.7 ? 'strong' : r < 0.9 ? 'exceptional' : 'adequate',
-        sleep_recovery: clamp(jitter(84, 8), 40, 100),
-        daytime_recovery: clamp(jitter(81, 8), 40, 100),
+        sleep_recovery: clamp(jitter(readinessBase - 2, 8), 40, 100),
+        daytime_recovery: clamp(jitter(readinessBase - 5, 8), 40, 100),
         stress: clamp(jitter(42, 10), 10, 80),
       }
     }),
@@ -412,8 +420,57 @@ function generateValueInRange(low: number | null, high: number | null): number {
   return Math.round(value * 10) / 10
 }
 
-function generateLabResults(sex: Sex): LabResult[] {
+function generateValueForFlag(
+  flag: 'optimal' | 'acceptable' | 'attention',
+  marker: MarkerDefinition,
+  sex: Sex,
+): number {
+  const ranges = sex === 'female' && marker.sexVariant?.female
+    ? marker.sexVariant.female
+    : { optimal: marker.optimal, acceptable: marker.acceptable }
+
+  if (flag === 'attention') {
+    // Generate a value outside the attention threshold
+    const { low, high } = marker.attentionThreshold
+    if (high !== undefined) {
+      // Go above high threshold
+      const base = high * 1.1
+      return Math.round((base + Math.random() * high * 0.1) * 10) / 10
+    } else if (low !== undefined) {
+      // Go below low threshold
+      const base = low * 0.8
+      return Math.round((base - Math.random() * low * 0.1) * 10) / 10
+    }
+    // Fallback
+    return generateValueInRange(ranges.acceptable[0], ranges.acceptable[1])
+  }
+
+  if (flag === 'acceptable') {
+    // Generate in acceptable range but NOT in optimal range
+    const [optLow, optHigh] = ranges.optimal
+    const [accLow, accHigh] = ranges.acceptable
+
+    // Try to generate in the gap between acceptable and optimal
+    if (optHigh !== null && accHigh !== null && accHigh > optHigh) {
+      // Upper acceptable zone (between optHigh and accHigh)
+      const value = optHigh + Math.random() * (accHigh - optHigh)
+      return Math.round(value * 10) / 10
+    } else if (optLow !== null && accLow !== null && accLow < optLow) {
+      // Lower acceptable zone (between accLow and optLow)
+      const value = accLow + Math.random() * (optLow - accLow)
+      return Math.round(value * 10) / 10
+    }
+    // Fallback to acceptable range
+    return generateValueInRange(ranges.acceptable[0], ranges.acceptable[1])
+  }
+
+  // 'optimal' or default
+  return generateValueInRange(ranges.optimal[0], ranges.optimal[1])
+}
+
+function generateLabResults(sex: Sex, traits: PersonaTraits): LabResult[] {
   const drawDays = [0, 60, 120]
+  const bloodworkFlags = traits.bloodworkFlags ?? {}
 
   return drawDays.map((daysAgo, labIndex) => {
     const markers: BloodMarker[] = BLOODWORK_MARKERS
@@ -423,9 +480,12 @@ function generateLabResults(sex: Sex): LabResult[] {
           ? marker.sexVariant.female
           : { optimal: marker.optimal, acceptable: marker.acceptable }
 
-        // Most recent result: all optimal. Older: allow some acceptable
         let value: number
-        if (labIndex === 0) {
+        if (labIndex === 0 && bloodworkFlags[marker.id]) {
+          // Most recent lab: apply persona bloodwork flags
+          value = generateValueForFlag(bloodworkFlags[marker.id], marker, sex)
+        } else if (labIndex === 0) {
+          // Most recent result: optimal by default
           value = generateValueInRange(ranges.optimal[0], ranges.optimal[1])
         } else {
           value = Math.random() > 0.85
@@ -471,17 +531,20 @@ function generateLabResults(sex: Sex): LabResult[] {
 
 // ─── Exercise Workouts ───
 
-function generateExerciseWorkouts(): ExerciseWorkout[] {
+function generateExerciseWorkouts(traits: PersonaTraits): ExerciseWorkout[] {
   const workouts: ExerciseWorkout[] = []
   const strengthExercises = ['Squat', 'Deadlift', 'Bench Press', 'Pull-up', 'Barbell Row', 'Overhead Press']
   const strengthSplits = ['Upper Body', 'Lower Body', 'Full Body']
+  const workoutsPerWeek = traits.workoutsPerWeek ?? 6
+  // Calculate rest days: 7 - workoutsPerWeek
+  const restDaysPerWeek = 7 - workoutsPerWeek
 
   for (let i = 89; i >= 0; i--) {
     const day = dateStr(i)
     const dayOfWeek = new Date(day).getDay() // 0=Sun
 
-    // Weekly schedule: Mon=run, Tue=strength, Wed=cycle, Thu=rest, Fri=run, Sat=strength, Sun=long-run
-    if (dayOfWeek === 4) continue // Thu rest
+    // Skip rest days based on workoutsPerWeek
+    if (dayOfWeek >= workoutsPerWeek && dayOfWeek < 7) continue
 
     // Skip ~1 random workout per week for realism
     if (dayOfWeek !== 0 && Math.random() < 0.12) continue
@@ -556,8 +619,8 @@ function generateExerciseWorkouts(): ExerciseWorkout[] {
 
 // ─── VO2 Max ───
 
-function generateVO2MaxEntries(sex: Sex): VO2MaxEntry[] {
-  const base = sex === 'male' ? 55 : 50
+function generateVO2MaxEntries(sex: Sex, traits: PersonaTraits): VO2MaxEntry[] {
+  const base = traits.vo2max ?? (sex === 'male' ? 55 : 50)
   return [90, 45, 0].map((daysAgo, i) => ({
     id: `demo-vo2max-${i}`,
     date: dateStr(daysAgo),
@@ -570,11 +633,14 @@ function generateVO2MaxEntries(sex: Sex): VO2MaxEntry[] {
 
 // ─── Sleep Nights ───
 
-function generateSleepNights(): SleepNight[] {
+function generateSleepNights(traits: PersonaTraits): SleepNight[] {
+  const totalSleepBase = traits.totalSleepMin ?? 455
+  const deepBase = traits.deepMin ?? 90
+
   return Array.from({ length: 90 }, (_, i) => {
     const day = dateStr(89 - i)
-    const totalMin = clamp(jitter(455, 25), 380, 540)
-    const deepMin = clamp(jitter(90, 15), 45, 150)
+    const totalMin = clamp(jitter(totalSleepBase, 25), 280, 540)
+    const deepMin = clamp(jitter(deepBase, 15), 30, 150)
     const remMin = clamp(jitter(105, 15), 50, 160)
     const awakeMin = clamp(jitter(20, 8), 5, 45)
     const lightMin = Math.max(0, totalMin - deepMin - remMin - awakeMin)
@@ -615,17 +681,20 @@ const JOURNAL_TEMPLATES = [
   'Productive day, low stress.',
 ]
 
-function generateEmotionalEntries(): EmotionalEntry[] {
+function generateEmotionalEntries(traits: PersonaTraits): EmotionalEntry[] {
+  const moodBase = traits.moodBase ?? 4
+  const stressBase = traits.stressBase ?? 2
+
   return Array.from({ length: 45 }, (_, i) => {
     const day = dateStr(i * 2)
     return {
       id: `demo-emotional-${day}`,
       source: 'manual' as const,
       date: day,
-      mood: clamp(jitter(4, 1), 1, 5),
-      stress: clamp(jitter(2, 1), 1, 5),
-      anxiety: clamp(jitter(2, 1), 1, 5),
-      energy: clamp(jitter(4, 1), 1, 5),
+      mood: clamp(jitter(moodBase, 1), 1, 5),
+      stress: clamp(jitter(stressBase, 1), 1, 5),
+      anxiety: clamp(jitter(stressBase, 1), 1, 5),
+      energy: clamp(jitter(moodBase, 1), 1, 5),
       journalText: Math.random() < 0.3 ? pick(JOURNAL_TEMPLATES) : undefined,
       createdAt: Date.now(),
     }
@@ -641,10 +710,11 @@ const MEAL_NAMES: Record<MealType, string[]> = {
   snack: ['Protein bar', 'Mixed nuts', 'Cottage cheese'],
 }
 
-function generateNutritionData(sex: Sex): { entries: NutritionEntry[], settings: { bodyweightLbs: number, dailyCalorieTarget: number } } {
-  const bodyweightLbs = sex === 'male' ? 180 : 140
-  const dailyCalorieTarget = sex === 'male' ? 2800 : 2200
-  const proteinPerDay = bodyweightLbs // 1g per lb
+function generateNutritionData(sex: Sex, traits: PersonaTraits): { entries: NutritionEntry[], settings: { bodyweightLbs: number, dailyCalorieTarget: number } } {
+  const bodyweightLbs = traits.bodyweightLbs ?? (sex === 'male' ? 180 : 140)
+  const dailyCalorieTarget = traits.dailyCalorieTarget ?? (sex === 'male' ? 2800 : 2200)
+  const proteinPerLb = traits.proteinPerLb ?? 1
+  const proteinPerDay = Math.round(bodyweightLbs * proteinPerLb)
 
   const mealSplit = {
     breakfast: { calPct: 0.25, protPct: 0.22, carbPct: 0.30, fatPct: 0.25, fiber: 6 },
@@ -693,9 +763,10 @@ const DEMO_SUPPLEMENTS: Omit<MoleculeDefinition, 'createdAt'>[] = [
   { id: 'demo-nac', name: 'NAC', category: 'amino_acid', dosage: 600, unit: 'mg', frequency: 'daily', active: true },
 ]
 
-function generateMoleculeData(): { definitions: MoleculeDefinition[], entries: MoleculeEntry[] } {
+function generateMoleculeData(traits: PersonaTraits): { definitions: MoleculeDefinition[], entries: MoleculeEntry[] } {
+  const count = traits.supplementCount ?? 6
   const now = Date.now()
-  const definitions: MoleculeDefinition[] = DEMO_SUPPLEMENTS.map(s => ({ ...s, createdAt: now }))
+  const definitions: MoleculeDefinition[] = DEMO_SUPPLEMENTS.slice(0, count).map(s => ({ ...s, createdAt: now }))
 
   const entries: MoleculeEntry[] = []
   for (let d = 0; d < 90; d++) {
@@ -720,27 +791,30 @@ function generateMoleculeData(): { definitions: MoleculeDefinition[], entries: M
 
 // ─── Orchestrator ───
 
-export function generateAllDemoData(sex: Sex): void {
-  saveOuraData(generateOuraData())
+export function generateAllDemoData(persona: DemoPersona): void {
+  const { sex, age, traits } = persona
 
-  for (const lab of generateLabResults(sex)) saveLabResult(lab)
+  saveOuraData(generateOuraData(traits))
 
-  saveWorkouts(generateExerciseWorkouts())
+  for (const lab of generateLabResults(sex, traits)) saveLabResult(lab)
 
-  for (const v of generateVO2MaxEntries(sex)) saveVO2Max(v)
+  saveWorkouts(generateExerciseWorkouts(traits))
 
-  saveSleepNights(generateSleepNights())
+  for (const v of generateVO2MaxEntries(sex, traits)) saveVO2Max(v)
 
-  for (const e of generateEmotionalEntries()) saveEmotionalEntry(e)
+  saveSleepNights(generateSleepNights(traits))
 
-  const nutrition = generateNutritionData(sex)
+  for (const e of generateEmotionalEntries(traits)) saveEmotionalEntry(e)
+
+  const nutrition = generateNutritionData(sex, traits)
   saveNutritionSettings(nutrition.settings)
   for (const e of nutrition.entries) saveNutritionEntry(e)
 
-  const molecules = generateMoleculeData()
+  const molecules = generateMoleculeData(traits)
   for (const d of molecules.definitions) saveDefinition(d)
   for (const e of molecules.entries) saveMoleculeEntry(e)
 
-  localStorage.setItem('healthspan:userAge', '30')
+  localStorage.setItem('healthspan:userAge', String(age))
   localStorage.setItem('healthspan:userSex', sex)
+  localStorage.setItem(DEMO_MODE_KEY, persona.id)
 }

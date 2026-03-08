@@ -4,6 +4,7 @@ import {
   AreaChart, Area, BarChart, Bar, CartesianGrid, Legend, ReferenceLine,
 } from 'recharts'
 import { getOuraData } from '../utils/oura-storage'
+import { generateAllDemoData, DEMO_PERSONAS } from '../utils/demo-data'
 import { getLabResults } from '../utils/lab-storage'
 import { getWorkouts } from '../utils/exercise-storage'
 import { getSleepNights } from '../utils/sleep-storage'
@@ -29,6 +30,63 @@ const yax = (p?: any) => <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLin
 const grd = (id: string, c: string) => (
   <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c} stopOpacity={0.3} /><stop offset="100%" stopColor={c} stopOpacity={0} /></linearGradient></defs>
 )
+
+function DemoEmptyState() {
+  const [sex, setSex] = useState<'male' | 'female' | null>(null)
+  const [running, setRunning] = useState(false)
+
+  function handleRun() {
+    if (!sex) return
+    setRunning(true)
+    const persona = DEMO_PERSONAS.find(p => p.sex === sex)!
+    generateAllDemoData(persona)
+    window.location.reload()
+  }
+
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center space-y-5 max-w-sm">
+        <p className="text-lg font-medium text-gray-200">No Oura data loaded</p>
+        <p className="text-sm text-gray-500">
+          Go to{' '}
+          <a href="#/settings" className="text-brand-400 underline hover:text-brand-300">
+            Settings
+          </a>{' '}
+          to import your Oura Ring export, or run the demo below.
+        </p>
+        <div className="flex justify-center gap-3">
+          <button
+            onClick={() => setSex('male')}
+            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+              sex === 'male'
+                ? 'border-brand-500 bg-brand-500/15 text-brand-300'
+                : 'border-white/10 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Male
+          </button>
+          <button
+            onClick={() => setSex('female')}
+            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+              sex === 'female'
+                ? 'border-brand-500 bg-brand-500/15 text-brand-300'
+                : 'border-white/10 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Female
+          </button>
+        </div>
+        <button
+          onClick={handleRun}
+          disabled={!sex || running}
+          className="w-full py-2.5 rounded-lg bg-brand-500/20 border border-brand-500/40 text-brand-300 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-500/30 transition-colors"
+        >
+          {running ? 'Generating...' : 'Run Demo'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const [tab, setTab] = useState('Trends')
@@ -138,20 +196,7 @@ export default function Dashboard() {
   const todayAdherence = useMemo(() => getDailyAdherence(new Date().toISOString().slice(0, 10)), [moleculeEntries])
 
   if (!ouraData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-3">
-          <p className="text-lg font-medium text-gray-200">No Oura data loaded</p>
-          <p className="text-sm text-gray-500">
-            Go to{' '}
-            <a href="#/settings" className="text-brand-400 underline hover:text-brand-300">
-              Settings
-            </a>{' '}
-            to import your Oura Ring export.
-          </p>
-        </div>
-      </div>
-    )
+    return <DemoEmptyState />
   }
 
   // Prepared datasets
