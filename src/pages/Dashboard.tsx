@@ -32,57 +32,46 @@ const grd = (id: string, c: string) => (
 )
 
 function DemoEmptyState() {
-  const [sex, setSex] = useState<'male' | 'female' | null>(null)
-  const [running, setRunning] = useState(false)
+  const [loading, setLoading] = useState<string | null>(null)
 
-  function handleRun() {
-    if (!sex) return
-    setRunning(true)
-    const persona = DEMO_PERSONAS.find(p => p.sex === sex)!
+  function handleLoad(persona: typeof DEMO_PERSONAS[number]) {
+    setLoading(persona.id)
     generateAllDemoData(persona)
     window.location.reload()
   }
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center space-y-5 max-w-sm">
-        <p className="text-lg font-medium text-gray-200">No Oura data loaded</p>
+      <div className="text-center space-y-6 max-w-2xl px-4">
+        <p className="text-lg font-medium text-gray-200">No data loaded</p>
         <p className="text-sm text-gray-500">
           Go to{' '}
           <a href="#/settings" className="text-brand-400 underline hover:text-brand-300">
             Settings
           </a>{' '}
-          to import your Oura Ring export, or run the demo below.
+          to import your Oura Ring export, or select a demo profile below.
         </p>
-        <div className="flex justify-center gap-3">
-          <button
-            onClick={() => setSex('male')}
-            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
-              sex === 'male'
-                ? 'border-brand-500 bg-brand-500/15 text-brand-300'
-                : 'border-white/10 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Male
-          </button>
-          <button
-            onClick={() => setSex('female')}
-            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
-              sex === 'female'
-                ? 'border-brand-500 bg-brand-500/15 text-brand-300'
-                : 'border-white/10 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Female
-          </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
+          {DEMO_PERSONAS.map(persona => (
+            <button
+              key={persona.id}
+              onClick={() => handleLoad(persona)}
+              disabled={loading !== null}
+              className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-4 hover:bg-white/[0.07] hover:border-brand-500/30 transition-colors text-left disabled:opacity-40"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-gray-200">{persona.name}</span>
+                <span className="text-[10px] text-gray-500 bg-white/[0.06] px-1.5 py-0.5 rounded">
+                  {persona.age}{persona.sex === 'male' ? 'M' : 'F'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed">{persona.description}</p>
+              {loading === persona.id && (
+                <p className="text-xs text-brand-400 mt-2">Generating...</p>
+              )}
+            </button>
+          ))}
         </div>
-        <button
-          onClick={handleRun}
-          disabled={!sex || running}
-          className="w-full py-2.5 rounded-lg bg-brand-500/20 border border-brand-500/40 text-brand-300 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-500/30 transition-colors"
-        >
-          {running ? 'Generating...' : 'Run Demo'}
-        </button>
       </div>
     </div>
   )

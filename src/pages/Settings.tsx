@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Key, Upload, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { getApiKey, setApiKey, clearApiKey } from '../utils/lab-storage'
 import { saveOuraData, hasOuraData } from '../utils/oura-storage'
+import { isDemoMode, getActivePersona, clearDemoData, DEMO_PERSONAS, generateAllDemoData } from '../utils/demo-data'
 import type { OuraData } from '../types'
 
 export default function Settings() {
@@ -15,6 +16,8 @@ export default function Settings() {
   const [justCleared, setJustCleared] = useState(false)
   const [userAge, setUserAge] = useState(() => localStorage.getItem('healthspan:userAge') ?? '35')
   const [userSex, setUserSex] = useState(() => localStorage.getItem('healthspan:userSex') ?? 'male')
+  const [demoActive] = useState(() => isDemoMode())
+  const [activePersona] = useState(() => getActivePersona())
 
   useEffect(() => {
     const existing = getApiKey()
@@ -224,6 +227,77 @@ export default function Settings() {
             </select>
           </div>
         </div>
+      </section>
+
+      {/* ─── Demo Mode Section ─── */}
+      <section className="bg-white/[0.04] border border-white/[0.08] rounded-[18px] p-6 mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Demo Mode</h2>
+          {demoActive && (
+            <span className="text-[10px] bg-brand-500/20 text-brand-300 px-2 py-0.5 rounded-full font-medium">Active</span>
+          )}
+        </div>
+
+        {demoActive && activePersona ? (
+          <div className="space-y-4">
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium text-gray-200">{activePersona.name}</span>
+                <span className="text-[10px] text-gray-500 bg-white/[0.06] px-1.5 py-0.5 rounded">
+                  {activePersona.age}{activePersona.sex === 'male' ? 'M' : 'F'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">{activePersona.description}</p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-2">Switch to a different persona:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {DEMO_PERSONAS.filter(p => p.id !== activePersona.id).map(persona => (
+                  <button
+                    key={persona.id}
+                    onClick={() => { clearDemoData(); generateAllDemoData(persona); window.location.reload() }}
+                    className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 text-left hover:bg-white/[0.06] hover:border-brand-500/20 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-gray-300">{persona.name}</span>
+                      <span className="text-[10px] text-gray-600">{persona.age}{persona.sex === 'male' ? 'M' : 'F'}</span>
+                    </div>
+                    <p className="text-[11px] text-gray-600 leading-relaxed">{persona.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => { clearDemoData(); window.location.reload() }}
+              className="w-full py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold hover:bg-red-500/20 transition-colors"
+            >
+              Clear Demo Data
+            </button>
+          </div>
+        ) : (
+          <div>
+            <p className="text-sm text-gray-400 mb-4">
+              Load demo data to see the app fully populated with realistic health data.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {DEMO_PERSONAS.map(persona => (
+                <button
+                  key={persona.id}
+                  onClick={() => { generateAllDemoData(persona); window.location.reload() }}
+                  className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 text-left hover:bg-white/[0.06] hover:border-brand-500/20 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-300">{persona.name}</span>
+                    <span className="text-[10px] text-gray-600">{persona.age}{persona.sex === 'male' ? 'M' : 'F'}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 leading-relaxed">{persona.description}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
     </div>
   )

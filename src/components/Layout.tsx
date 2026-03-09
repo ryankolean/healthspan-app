@@ -1,4 +1,5 @@
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, NavLink, Link } from 'react-router-dom'
+import { isDemoMode, getActivePersona, clearDemoData } from '../utils/demo-data'
 import { Activity, LayoutDashboard, Dumbbell, Apple, Moon, Brain, Pill, TestTube, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -65,6 +66,24 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="flex-1 ml-16 lg:ml-56">
+        {isDemoMode() && (
+          <div className="sticky top-0 z-40 flex items-center justify-between px-4 py-2 bg-brand-500/10 border-b border-brand-500/20">
+            <span className="text-xs font-medium text-brand-300">
+              Demo Mode — {getActivePersona()?.name ?? 'Unknown'}
+            </span>
+            <div className="flex items-center gap-3">
+              <Link to="/settings" className="text-xs text-brand-400 hover:text-brand-300 underline">
+                Switch Persona
+              </Link>
+              <button
+                onClick={() => { clearDemoData(); window.location.reload() }}
+                className="text-xs text-red-400 hover:text-red-300"
+              >
+                Exit Demo
+              </button>
+            </div>
+          </div>
+        )}
         <Outlet />
       </main>
     </div>
