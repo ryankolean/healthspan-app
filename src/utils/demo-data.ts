@@ -825,6 +825,9 @@ function generateMoleculeData(traits: PersonaTraits): { definitions: MoleculeDef
 // ─── Daily Actions ───
 
 function generateDemoActions(traits: PersonaTraits): void {
+  const adherence = traits.actionAdherence ?? 0.8
+  const extras = traits.extraActions ?? []
+
   const actions: ActionDefinition[] = [
     { id: 'demo-workout', label: 'Log a workout', frequency: { type: 'times_per_week', count: traits.workoutsPerWeek ?? 4 }, domain: 'exercise', autoCompleteRule: 'any_workout', createdAt: new Date().toISOString(), active: true, sortOrder: 0 },
     { id: 'demo-meals', label: 'Log all meals', frequency: { type: 'daily' }, domain: 'nutrition', autoCompleteRule: 'all_meals', createdAt: new Date().toISOString(), active: true, sortOrder: 1 },
@@ -834,23 +837,109 @@ function generateDemoActions(traits: PersonaTraits): void {
     { id: 'demo-hydrate', label: 'Drink 8 glasses of water', frequency: { type: 'daily' }, createdAt: new Date().toISOString(), active: true, sortOrder: 5 },
   ]
 
+  extras.forEach((extra, i) => {
+    actions.push({
+      id: `demo-extra-${i}`,
+      label: extra.label,
+      frequency: extra.frequency,
+      createdAt: new Date().toISOString(),
+      active: true,
+      sortOrder: 6 + i,
+    })
+  })
+
   localStorage.setItem('healthspan:actions:definitions', JSON.stringify(actions))
   localStorage.setItem('healthspan:actions:settings', JSON.stringify({ dayResetHour: 0 }))
 
-  // Generate completion entries for the custom hydration action (~80% adherence)
-  // Domain-linked actions auto-complete from existing demo domain data
+  const customActions = actions.filter(a => !a.autoCompleteRule)
+  const morningActionIds = new Set(['demo-sleep', 'demo-supplements', 'demo-mood'])
+
   for (let i = 0; i < 90; i++) {
     const day = dateStr(i)
-    if (Math.random() < 0.8) {
-      const entries: DailyActionEntry[] = [{
-        actionId: 'demo-hydrate',
-        date: day,
-        completed: true,
-        completedAt: `${day}T18:00:00Z`,
-        autoCompleted: false,
-      }]
-      localStorage.setItem(`healthspan:actions:entries:${day}`, JSON.stringify(entries))
+    const isToday = i === 0
+    const d = new Date(Date.now() - i * 86400000)
+    const dow = d.getDay()
+    const isWeekend = dow === 0 || dow === 6
+
+    const trendBoost = (90 - i) / 90 * 0.05
+    const dayAdherence = Math.min(1, adherence + trendBoost)
+
+    // College-athlete weekend penalty (detected by checking for "Team practice" extra action)
+    const effectiveAdherence = (isWeekend && traits.extraActions?.some(e => e.label === 'Team practice'))
+      ? dayAdherence * 0.8
+      : dayAdherence
+
+    const entries: DailyActionEntry[] = []
+
+    for (const action of customActions) {
+      if (!isDueOnDay(action, dow)) continue
+
+      if (action.frequency.type === 'times_per_week') {
+        const weeklyProb = action.frequency.count / 7
+        if (Math.random() > weeklyProb * (effectiveAdherence / 0.8)) continue
+      }
+
+      if (isToday) {
+        entries.push({
+          actionId: action.id,
+          date: day,
+          completed: false,
+          autoCompleted: false,
+        })
+      } else {
+        const completed = Math.random() < effectiveAdherence
+        if (completed) {
+          entries.push({
+            actionId: action.id,
+            date: day,
+            completed: true,
+            completedAt: `${day}T${jitter(16, 4).toString().padStart(2, '0')}:00:00Z`,
+            autoCompleted: false,
+          })
+        }
+      }
     }
+
+    if (isToday) {
+      for (const actionId of morningActionIds) {
+        entries.push({
+          actionId,
+          date: day,
+          completed: true,
+          completedAt: `${day}T08:00:00Z`,
+          autoCompleted: true,
+        })
+      }
+      entries.push({
+        actionId: 'demo-workout',
+        date: day,
+        completed: false,
+        autoCompleted: false,
+      })
+      entries.push({
+        actionId: 'demo-meals',
+        date: day,
+        completed: false,
+        autoCompleted: false,
+      })
+    }
+
+    if (entries.length > 0) {
+      const existingRaw = localStorage.getItem(`healthspan:actions:entries:${day}`)
+      const existing: DailyActionEntry[] = existingRaw ? JSON.parse(existingRaw) : []
+      const existingIds = new Set(existing.map(e => e.actionId))
+      const merged = [...existing, ...entries.filter(e => !existingIds.has(e.actionId))]
+      localStorage.setItem(`healthspan:actions:entries:${day}`, JSON.stringify(merged))
+    }
+  }
+}
+
+function isDueOnDay(action: ActionDefinition, dow: number): boolean {
+  switch (action.frequency.type) {
+    case 'daily': return true
+    case 'weekdays': return dow >= 1 && dow <= 5
+    case 'specific_days': return action.frequency.days.includes(dow)
+    case 'times_per_week': return true
   }
 }
 

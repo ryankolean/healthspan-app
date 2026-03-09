@@ -7,6 +7,7 @@ import { getSleepNights } from './sleep-storage'
 import { getEmotionalEntries } from './emotional-storage'
 import { getNutritionEntries, getNutritionSettings } from './nutrition-storage'
 import { getDefinitions, getMoleculeEntries } from './molecules-storage'
+import { getActionDefinitions, getDailyEntries } from './actions-storage'
 
 const MALE_PERSONA: DemoPersona = DEMO_PERSONAS.find(p => p.sex === 'male')!
 const FEMALE_PERSONA: DemoPersona = DEMO_PERSONAS.find(p => p.sex === 'female')!
@@ -411,5 +412,97 @@ describe('persona-driven generation', () => {
     const persona = DEMO_PERSONAS.find(p => p.id === 'elite-athlete')!
     generateAllDemoData(persona)
     expect(getDemoMode()).toBe('elite-athlete')
+  })
+})
+
+describe('demo actions quality', () => {
+  it('generates core actions plus persona extras', () => {
+    const persona = DEMO_PERSONAS.find(p => p.id === 'elite-athlete')!
+    generateAllDemoData(persona)
+    const actions = getActionDefinitions()
+    // 6 core + 2 extras
+    expect(actions).toHaveLength(8)
+    expect(actions.find(a => a.label === 'Zone 2 cardio session')).toBeDefined()
+    expect(actions.find(a => a.label === 'Stretch/mobility')).toBeDefined()
+  })
+
+  it('generates completion entries for custom actions over 90 days', () => {
+    const persona = DEMO_PERSONAS.find(p => p.id === 'elite-athlete')!
+    generateAllDemoData(persona)
+    const daysAgo30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+    const entries = getDailyEntries(daysAgo30)
+    expect(entries.length).toBeGreaterThan(0)
+  })
+
+  it('high-adherence persona has more completions than low-adherence', () => {
+    const elite = DEMO_PERSONAS.find(p => p.id === 'elite-athlete')!
+    const metSyn = DEMO_PERSONAS.find(p => p.id === 'metabolic-syndrome')!
+
+    let eliteTotal = 0
+    let metTotal = 0
+
+    generateAllDemoData(elite)
+    for (let i = 20; i < 30; i++) {
+      const day = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+      eliteTotal += getDailyEntries(day).filter(e => e.completed).length
+    }
+
+    localStorage.clear()
+    generateAllDemoData(metSyn)
+    for (let i = 20; i < 30; i++) {
+      const day = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+      metTotal += getDailyEntries(day).filter(e => e.completed).length
+    }
+
+    expect(eliteTotal).toBeGreaterThan(metTotal)
+  })
+
+  it('today has some completed and some incomplete entries for partial feel', () => {
+    const persona = DEMO_PERSONAS.find(p => p.id === 'elite-athlete')!
+    generateAllDemoData(persona)
+    const today = new Date().toISOString().slice(0, 10)
+    const entries = getDailyEntries(today)
+    const completed = entries.filter(e => e.completed)
+    const incomplete = entries.filter(e => !e.completed)
+    expect(completed.length).toBeGreaterThan(0)
+    expect(incomplete.length).toBeGreaterThan(0)
+  })
+
+  it('extra action ids are unique and prefixed with demo-extra-', () => {
+    const persona = DEMO_PERSONAS.find(p => p.id === 'elite-athlete')!
+    generateAllDemoData(persona)
+    const actions = getActionDefinitions()
+    const extraActions = actions.filter(a => a.id.startsWith('demo-extra-'))
+    expect(extraActions).toHaveLength(2)
+    const ids = actions.map(a => a.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('college-athlete has lower weekend adherence', () => {
+    const persona = DEMO_PERSONAS.find(p => p.id === 'college-athlete')!
+    generateAllDemoData(persona)
+
+    let weekdayCompleted = 0
+    let weekdayTotal = 0
+    let weekendCompleted = 0
+    let weekendTotal = 0
+
+    for (let i = 1; i < 60; i++) {
+      const d = new Date(Date.now() - i * 86400000)
+      const day = d.toISOString().slice(0, 10)
+      const dow = d.getDay()
+      const entries = getDailyEntries(day).filter(e => e.completed)
+      if (dow === 0 || dow === 6) {
+        weekendCompleted += entries.length
+        weekendTotal++
+      } else {
+        weekdayCompleted += entries.length
+        weekdayTotal++
+      }
+    }
+
+    const weekdayRate = weekdayCompleted / weekdayTotal
+    const weekendRate = weekendCompleted / weekendTotal
+    expect(weekdayRate).toBeGreaterThan(weekendRate)
   })
 })
