@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, Link } from 'react-router-dom'
 import { isDemoMode, getActivePersona, clearDemoData } from '../utils/demo-data'
+import { getActionDefinitions, getActionSettings, getEffectiveToday, isActionDueOnDate, getCompletedDaysThisWeek } from '../utils/actions-storage'
+import { getIncompleteCount } from '../utils/actions-auto-complete'
 import { Activity, LayoutDashboard, Dumbbell, Apple, Moon, Brain, Pill, TestTube, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -14,6 +17,34 @@ const NAV_ITEMS = [
 ]
 
 export default function Layout() {
+  const [badgeCount, setBadgeCount] = useState(0)
+
+  useEffect(() => {
+    function updateBadge() {
+      const settings = getActionSettings()
+      const today = getEffectiveToday(settings.dayResetHour)
+      const allActions = getActionDefinitions().filter(a => a.active)
+      const dueActions = allActions.filter(a => {
+        if (a.frequency.type === 'times_per_week') {
+          const completed = getCompletedDaysThisWeek(a.id, today)
+          return isActionDueOnDate(a, today, completed)
+        }
+        return isActionDueOnDate(a, today)
+      })
+      setBadgeCount(getIncompleteCount(dueActions, today))
+    }
+
+    updateBadge()
+    window.addEventListener('focus', updateBadge)
+    window.addEventListener('storage', updateBadge)
+    window.addEventListener('healthspan:actions-updated', updateBadge)
+    return () => {
+      window.removeEventListener('focus', updateBadge)
+      window.removeEventListener('storage', updateBadge)
+      window.removeEventListener('healthspan:actions-updated', updateBadge)
+    }
+  }, [])
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
@@ -37,7 +68,7 @@ export default function Layout() {
               to={item.active ? item.to : '#'}
               onClick={e => { if (!item.active) e.preventDefault() }}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                `relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   !item.active
                     ? 'text-gray-600 cursor-not-allowed'
                     : isActive
@@ -47,6 +78,11 @@ export default function Layout() {
               }
             >
               <item.icon size={18} className="flex-shrink-0" />
+              {item.to === '/dashboard' && badgeCount > 0 && (
+                <span className="absolute -top-1 -right-1 lg:relative lg:top-auto lg:right-auto lg:ml-auto min-w-[20px] h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                  {badgeCount}
+                </span>
+              )}
               <span className="hidden lg:block">{item.label}</span>
               {!item.active && (
                 <span className="hidden lg:block ml-auto text-[9px] uppercase tracking-wider text-gray-600 bg-white/5 px-1.5 py-0.5 rounded">Soon</span>
