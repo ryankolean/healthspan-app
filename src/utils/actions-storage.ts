@@ -1,6 +1,12 @@
 import type { ActionDefinition, DailyActionEntry, ActionSettings } from '../types/actions'
 import { DEFAULT_ACTION_SETTINGS } from '../types/actions'
 
+export const ACTIONS_UPDATED_EVENT = 'healthspan:actions-updated'
+
+export function dispatchActionsUpdated(): void {
+  window.dispatchEvent(new Event(ACTIONS_UPDATED_EVENT))
+}
+
 const KEYS = {
   definitions: 'healthspan:actions:definitions',
   settings: 'healthspan:actions:settings',
@@ -108,4 +114,15 @@ export function getCompletedDaysThisWeek(actionId: string, today: string): numbe
     d.setDate(d.getDate() + 1)
   }
   return count
+}
+
+export function getDueActionsForDate(date: string): ActionDefinition[] {
+  return getActionDefinitions().filter(a => {
+    if (!a.active) return false
+    if (a.frequency.type === 'times_per_week') {
+      const completed = getCompletedDaysThisWeek(a.id, date)
+      return isActionDueOnDate(a, date, completed)
+    }
+    return isActionDueOnDate(a, date)
+  })
 }

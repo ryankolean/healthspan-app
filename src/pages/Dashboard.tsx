@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import {
   getActionDefinitions, getActionSettings, getEffectiveToday,
-  isActionDueOnDate, getCompletedDaysThisWeek,
+  getDueActionsForDate, dispatchActionsUpdated, ACTIONS_UPDATED_EVENT,
   saveActionDefinition, deleteActionDefinition, saveDailyEntry,
   saveActionSettings,
 } from '../utils/actions-storage'
@@ -272,15 +272,7 @@ function TodayTab() {
   const today = getEffectiveToday(settings.dayResetHour)
 
   const refreshActions = useCallback(() => {
-    const allActions = getActionDefinitions().filter(a => a.active)
-    const dueActions = allActions.filter(a => {
-      if (a.frequency.type === 'times_per_week') {
-        const completed = getCompletedDaysThisWeek(a.id, today)
-        return isActionDueOnDate(a, today, completed)
-      }
-      return isActionDueOnDate(a, today)
-    })
-    setActionStatuses(runAutoCompleteChecks(dueActions, today))
+    setActionStatuses(runAutoCompleteChecks(getDueActionsForDate(today), today))
   }, [today])
 
   useEffect(() => {
@@ -298,7 +290,7 @@ function TodayTab() {
       autoCompleted: false,
     })
     refreshActions()
-    window.dispatchEvent(new Event('healthspan:actions-updated'))
+    dispatchActionsUpdated()
   }
 
   const handleSave = (def: ActionDefinition) => {
@@ -306,25 +298,25 @@ function TodayTab() {
     setShowForm(false)
     setEditingAction(null)
     refreshActions()
-    window.dispatchEvent(new Event('healthspan:actions-updated'))
+    dispatchActionsUpdated()
   }
 
   const handleDelete = (id: string) => {
     deleteActionDefinition(id)
     setMenuOpen(null)
     refreshActions()
-    window.dispatchEvent(new Event('healthspan:actions-updated'))
+    dispatchActionsUpdated()
   }
 
   const completed = actionStatuses.filter(s => s.completed).length
   const total = actionStatuses.length
-  const allActions = getActionDefinitions()
+  const hasAnyActions = actionStatuses.length > 0 || getActionDefinitions().length > 0
 
   const todayDate = new Date(today + 'T12:00:00')
   const dateStr = todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   // Empty state
-  if (allActions.length === 0 && !showForm) {
+  if (!hasAnyActions && !showForm) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="w-16 h-16 rounded-full bg-brand-500/10 flex items-center justify-center mb-4">
@@ -341,14 +333,6 @@ function TodayTab() {
           <Plus size={16} />
           Add your first action
         </button>
-        {showForm && (
-          <ActionForm
-            initial={null}
-            nextSortOrder={0}
-            onSave={handleSave}
-            onCancel={() => setShowForm(false)}
-          />
-        )}
       </div>
     )
   }
@@ -372,7 +356,7 @@ function TodayTab() {
             onChange={e => {
               saveActionSettings({ ...settings, dayResetHour: Number(e.target.value) })
               refreshActions()
-              window.dispatchEvent(new Event('healthspan:actions-updated'))
+              dispatchActionsUpdated()
             }}
             className="bg-white/[0.06] border border-white/10 rounded px-2 py-1 text-xs text-gray-300"
           >
@@ -474,7 +458,7 @@ function TodayTab() {
       {showForm && (
         <ActionForm
           initial={editingAction}
-          nextSortOrder={allActions.length}
+          nextSortOrder={getActionDefinitions().length}
           onSave={handleSave}
           onCancel={() => { setShowForm(false); setEditingAction(null) }}
         />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, Link } from 'react-router-dom'
 import { isDemoMode, getActivePersona, clearDemoData } from '../utils/demo-data'
-import { getActionDefinitions, getActionSettings, getEffectiveToday, isActionDueOnDate, getCompletedDaysThisWeek } from '../utils/actions-storage'
+import { getActionSettings, getEffectiveToday, getDueActionsForDate, ACTIONS_UPDATED_EVENT } from '../utils/actions-storage'
 import { getIncompleteCount } from '../utils/actions-auto-complete'
 import { Activity, LayoutDashboard, Dumbbell, Apple, Moon, Brain, Pill, TestTube, Settings } from 'lucide-react'
 
@@ -21,27 +21,18 @@ export default function Layout() {
 
   useEffect(() => {
     function updateBadge() {
-      const settings = getActionSettings()
-      const today = getEffectiveToday(settings.dayResetHour)
-      const allActions = getActionDefinitions().filter(a => a.active)
-      const dueActions = allActions.filter(a => {
-        if (a.frequency.type === 'times_per_week') {
-          const completed = getCompletedDaysThisWeek(a.id, today)
-          return isActionDueOnDate(a, today, completed)
-        }
-        return isActionDueOnDate(a, today)
-      })
-      setBadgeCount(getIncompleteCount(dueActions, today))
+      const today = getEffectiveToday(getActionSettings().dayResetHour)
+      setBadgeCount(getIncompleteCount(getDueActionsForDate(today), today))
     }
 
     updateBadge()
     window.addEventListener('focus', updateBadge)
     window.addEventListener('storage', updateBadge)
-    window.addEventListener('healthspan:actions-updated', updateBadge)
+    window.addEventListener(ACTIONS_UPDATED_EVENT, updateBadge)
     return () => {
       window.removeEventListener('focus', updateBadge)
       window.removeEventListener('storage', updateBadge)
-      window.removeEventListener('healthspan:actions-updated', updateBadge)
+      window.removeEventListener(ACTIONS_UPDATED_EVENT, updateBadge)
     }
   }, [])
 
