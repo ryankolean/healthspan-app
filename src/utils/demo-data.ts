@@ -14,6 +14,7 @@ import type { SleepNight } from '../types/sleep'
 import type { EmotionalEntry } from '../types/emotional'
 import type { NutritionEntry, MealType } from '../types/nutrition'
 import type { MoleculeDefinition, MoleculeEntry } from '../types/molecules'
+import type { ActionDefinition, DailyActionEntry } from '../types/actions'
 
 export type Sex = 'male' | 'female'
 
@@ -789,6 +790,38 @@ function generateMoleculeData(traits: PersonaTraits): { definitions: MoleculeDef
   return { definitions, entries }
 }
 
+// ─── Daily Actions ───
+
+function generateDemoActions(traits: PersonaTraits): void {
+  const actions: ActionDefinition[] = [
+    { id: 'demo-workout', label: 'Log a workout', frequency: { type: 'times_per_week', count: traits.workoutsPerWeek ?? 4 }, domain: 'exercise', autoCompleteRule: 'any_workout', createdAt: new Date().toISOString(), active: true, sortOrder: 0 },
+    { id: 'demo-meals', label: 'Log all meals', frequency: { type: 'daily' }, domain: 'nutrition', autoCompleteRule: 'all_meals', createdAt: new Date().toISOString(), active: true, sortOrder: 1 },
+    { id: 'demo-sleep', label: 'Log sleep', frequency: { type: 'daily' }, domain: 'sleep', autoCompleteRule: 'any_sleep', createdAt: new Date().toISOString(), active: true, sortOrder: 2 },
+    { id: 'demo-mood', label: 'Mood check-in', frequency: { type: 'daily' }, domain: 'emotional', autoCompleteRule: 'any_emotion', createdAt: new Date().toISOString(), active: true, sortOrder: 3 },
+    { id: 'demo-supplements', label: 'Take all supplements', frequency: { type: 'daily' }, domain: 'molecules', autoCompleteRule: 'all_supplements', createdAt: new Date().toISOString(), active: true, sortOrder: 4 },
+    { id: 'demo-hydrate', label: 'Drink 8 glasses of water', frequency: { type: 'daily' }, createdAt: new Date().toISOString(), active: true, sortOrder: 5 },
+  ]
+
+  localStorage.setItem('healthspan:actions:definitions', JSON.stringify(actions))
+  localStorage.setItem('healthspan:actions:settings', JSON.stringify({ dayResetHour: 0 }))
+
+  // Generate completion entries for the custom hydration action (~80% adherence)
+  // Domain-linked actions auto-complete from existing demo domain data
+  for (let i = 0; i < 90; i++) {
+    const day = dateStr(i)
+    if (Math.random() < 0.8) {
+      const entries: DailyActionEntry[] = [{
+        actionId: 'demo-hydrate',
+        date: day,
+        completed: true,
+        completedAt: `${day}T18:00:00Z`,
+        autoCompleted: false,
+      }]
+      localStorage.setItem(`healthspan:actions:entries:${day}`, JSON.stringify(entries))
+    }
+  }
+}
+
 // ─── Orchestrator ───
 
 export function generateAllDemoData(persona: DemoPersona): void {
@@ -813,6 +846,8 @@ export function generateAllDemoData(persona: DemoPersona): void {
   const molecules = generateMoleculeData(traits)
   for (const d of molecules.definitions) saveDefinition(d)
   for (const e of molecules.entries) saveMoleculeEntry(e)
+
+  generateDemoActions(traits)
 
   localStorage.setItem('healthspan:userAge', String(age))
   localStorage.setItem('healthspan:userSex', sex)
