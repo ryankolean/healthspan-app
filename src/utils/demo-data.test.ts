@@ -314,6 +314,20 @@ describe('DEMO_PERSONAS', () => {
   it('includes metabolic-syndrome persona', () => {
     expect(DEMO_PERSONAS.find(p => p.id === 'metabolic-syndrome')).toBeDefined()
   })
+
+  it('all personas have actionAdherence between 0 and 1', () => {
+    for (const p of DEMO_PERSONAS) {
+      expect(p.traits.actionAdherence).toBeGreaterThanOrEqual(0)
+      expect(p.traits.actionAdherence).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('all personas have extraActions array', () => {
+    for (const p of DEMO_PERSONAS) {
+      expect(Array.isArray(p.traits.extraActions)).toBe(true)
+      expect(p.traits.extraActions!.length).toBeGreaterThanOrEqual(2)
+    }
+  })
 })
 
 describe('isDemoMode / getDemoMode / clearDemoData', () => {

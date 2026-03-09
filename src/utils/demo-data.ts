@@ -14,7 +14,7 @@ import type { SleepNight } from '../types/sleep'
 import type { EmotionalEntry } from '../types/emotional'
 import type { NutritionEntry, MealType } from '../types/nutrition'
 import type { MoleculeDefinition, MoleculeEntry } from '../types/molecules'
-import type { ActionDefinition, DailyActionEntry } from '../types/actions'
+import type { ActionDefinition, DailyActionEntry, ActionFrequency } from '../types/actions'
 
 export type Sex = 'male' | 'female'
 
@@ -36,6 +36,8 @@ export interface PersonaTraits {
   dailyCalorieTarget?: number
   proteinPerLb?: number
   supplementCount?: number
+  actionAdherence?: number
+  extraActions?: { label: string; frequency: ActionFrequency }[]
 }
 
 export interface DemoPersona {
@@ -71,6 +73,11 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       dailyCalorieTarget: 3200,
       proteinPerLb: 1.0,
       supplementCount: 6,
+      actionAdherence: 0.95,
+      extraActions: [
+        { label: 'Zone 2 cardio session', frequency: { type: 'times_per_week', count: 3 } },
+        { label: 'Stretch/mobility', frequency: { type: 'daily' } },
+      ],
     },
   },
   {
@@ -97,6 +104,11 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       dailyCalorieTarget: 2400,
       proteinPerLb: 0.7,
       supplementCount: 3,
+      actionAdherence: 0.55,
+      extraActions: [
+        { label: 'Walk 10,000 steps', frequency: { type: 'daily' } },
+        { label: 'Blood pressure check', frequency: { type: 'weekdays' } },
+      ],
     },
   },
   {
@@ -122,6 +134,11 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       dailyCalorieTarget: 2400,
       proteinPerLb: 0.8,
       supplementCount: 2,
+      actionAdherence: 0.70,
+      extraActions: [
+        { label: 'Team practice', frequency: { type: 'weekdays' } },
+        { label: 'Recovery ice bath', frequency: { type: 'times_per_week', count: 2 } },
+      ],
     },
   },
   {
@@ -148,6 +165,11 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       dailyCalorieTarget: 2000,
       proteinPerLb: 0.5,
       supplementCount: 2,
+      actionAdherence: 0.45,
+      extraActions: [
+        { label: 'Walk after meals', frequency: { type: 'daily' } },
+        { label: 'Blood glucose check', frequency: { type: 'daily' } },
+      ],
     },
   },
   {
@@ -174,6 +196,11 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       dailyCalorieTarget: 2200,
       proteinPerLb: 0.8,
       supplementCount: 4,
+      actionAdherence: 0.75,
+      extraActions: [
+        { label: 'Pelvic floor exercises', frequency: { type: 'daily' } },
+        { label: 'Walk with baby', frequency: { type: 'daily' } },
+      ],
     },
   },
   {
@@ -199,6 +226,11 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       dailyCalorieTarget: 2000,
       proteinPerLb: 1.0,
       supplementCount: 6,
+      actionAdherence: 0.92,
+      extraActions: [
+        { label: 'Rapamycin protocol', frequency: { type: 'specific_days', days: [1] } },
+        { label: 'Sauna session', frequency: { type: 'times_per_week', count: 3 } },
+      ],
     },
   },
 ]
