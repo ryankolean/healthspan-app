@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, BarChart, Bar, CartesianGrid, Legend, ReferenceLine,
@@ -14,14 +14,34 @@ import { getProteinTarget, getNutritionStatus } from '../data/nutrition-targets'
 import { getMoleculeEntries, getDefinitions, getDailyAdherence } from '../utils/molecules-storage'
 import { getAdherenceStatus } from '../data/molecules-targets'
 import { Link } from 'react-router-dom'
-import { AlertTriangle } from 'lucide-react'
+import {
+  AlertTriangle, Plus, Check, MoreVertical, CircleCheck, Dumbbell, Apple, Moon, Brain, Pill, X, Pencil, Trash2,
+} from 'lucide-react'
+import {
+  getActionDefinitions, getActionSettings, getEffectiveToday,
+  isActionDueOnDate, getCompletedDaysThisWeek,
+  saveActionDefinition, deleteActionDefinition, saveDailyEntry,
+  saveActionSettings,
+} from '../utils/actions-storage'
+import { runAutoCompleteChecks, type ActionStatus } from '../utils/actions-auto-complete'
+import { DOMAIN_RULES, DOMAIN_LABELS } from '../data/actions-rules'
+import type { ActionDefinition, ActionDomain, AutoCompleteRule, ActionFrequency } from '../types/actions'
+import { v4 as uuid } from 'uuid'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
 import { computeTrend, computeOverallScore } from '../utils/trends'
 import { fmt, fmtFull, hrs, avgArr, scoreColor, filterByRange } from '../utils/helpers'
 import { Stat, ChartCard, ChartTooltip, TrendCard, dirColors, dirIcons, zoneColors } from '../components/Charts'
 import type { OuraData } from '../types'
 
-const TABS = ['Trends', 'Overview', 'Sleep', 'Activity', 'Heart', 'Readiness', 'Resilience']
+const TABS = ['Today', 'Trends', 'Overview', 'Sleep', 'Activity', 'Heart', 'Readiness', 'Resilience']
+
+const DOMAIN_ICONS: Record<ActionDomain, typeof Dumbbell> = {
+  exercise: Dumbbell,
+  nutrition: Apple,
+  sleep: Moon,
+  emotional: Brain,
+  molecules: Pill,
+}
 
 // Recharts primitives
 const grid = <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -77,8 +97,394 @@ function DemoEmptyState() {
   )
 }
 
+interface ActionFormProps {
+  initial: ActionDefinition | null
+  nextSortOrder: number
+  onSave: (def: ActionDefinition) => void
+  onCancel: () => void
+}
+
+function ActionForm({ initial, nextSortOrder, onSave, onCancel }: ActionFormProps) {
+  const [label, setLabel] = useState(initial?.label ?? '')
+  const [domain, setDomain] = useState<ActionDomain | ''>(initial?.domain ?? '')
+  const [rule, setRule] = useState<AutoCompleteRule | ''>(initial?.autoCompleteRule ?? '')
+  const [freqType, setFreqType] = useState<ActionFrequency['type']>(initial?.frequency.type ?? 'daily')
+  const [specificDays, setSpecificDays] = useState<number[]>(
+    initial?.frequency.type === 'specific_days' ? initial.frequency.days : []
+  )
+  const [timesPerWeek, setTimesPerWeek] = useState(
+    initial?.frequency.type === 'times_per_week' ? initial.frequency.count : 3
+  )
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  const buildFrequency = (): ActionFrequency => {
+    switch (freqType) {
+      case 'daily': return { type: 'daily' }
+      case 'weekdays': return { type: 'weekdays' }
+      case 'specific_days': return { type: 'specific_days', days: specificDays }
+      case 'times_per_week': return { type: 'times_per_week', count: timesPerWeek }
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!label.trim()) return
+
+    onSave({
+      id: initial?.id ?? uuid(),
+      label: label.trim(),
+      frequency: buildFrequency(),
+      domain: domain || undefined,
+      autoCompleteRule: (domain && rule) ? rule as AutoCompleteRule : undefined,
+      createdAt: initial?.createdAt ?? new Date().toISOString(),
+      active: true,
+      sortOrder: initial?.sortOrder ?? nextSortOrder,
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-200">{initial ? 'Edit Action' : 'New Action'}</h3>
+        <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300">
+          <X size={16} />
+        </button>
+      </div>
+
+      <div>
+        <label className="text-[11px] text-slate-400 uppercase tracking-wider">Label</label>
+        <input
+          type="text"
+          value={label}
+          onChange={e => setLabel(e.target.value)}
+          placeholder="e.g., Log a workout, Meditate 10 min"
+          className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-slate-600 focus:outline-none focus:border-brand-500/50"
+          autoFocus
+        />
+      </div>
+
+      <div>
+        <label className="text-[11px] text-slate-400 uppercase tracking-wider">Link to domain (optional)</label>
+        <select
+          value={domain}
+          onChange={e => { setDomain(e.target.value as ActionDomain | ''); setRule('') }}
+          className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
+        >
+          <option value="">None (manual checkoff)</option>
+          {(Object.keys(DOMAIN_LABELS) as ActionDomain[]).map(d => (
+            <option key={d} value={d}>{DOMAIN_LABELS[d]}</option>
+          ))}
+        </select>
+      </div>
+
+      {domain && (
+        <div>
+          <label className="text-[11px] text-slate-400 uppercase tracking-wider">Auto-complete when</label>
+          <select
+            value={rule}
+            onChange={e => setRule(e.target.value as AutoCompleteRule)}
+            className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
+          >
+            <option value="">Manual checkoff only</option>
+            {DOMAIN_RULES[domain as ActionDomain]?.map(r => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div>
+        <label className="text-[11px] text-slate-400 uppercase tracking-wider">Frequency</label>
+        <select
+          value={freqType}
+          onChange={e => setFreqType(e.target.value as ActionFrequency['type'])}
+          className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
+        >
+          <option value="daily">Every day</option>
+          <option value="weekdays">Weekdays (Mon-Fri)</option>
+          <option value="specific_days">Specific days</option>
+          <option value="times_per_week">X times per week</option>
+        </select>
+      </div>
+
+      {freqType === 'specific_days' && (
+        <div className="flex gap-1.5">
+          {dayNames.map((name, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setSpecificDays(prev =>
+                prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i].sort()
+              )}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors ${
+                specificDays.includes(i)
+                  ? 'border-brand-500 bg-brand-500/15 text-brand-300'
+                  : 'border-white/10 text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {freqType === 'times_per_week' && (
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={7}
+            value={timesPerWeek}
+            onChange={e => setTimesPerWeek(Number(e.target.value))}
+            className="w-16 bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200"
+          />
+          <span className="text-sm text-slate-400">times per week</span>
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={!label.trim()}
+          className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-40 transition-colors"
+        >
+          {initial ? 'Save Changes' : 'Add Action'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 rounded-lg border border-white/10 text-slate-400 text-sm hover:text-slate-300 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function TodayTab() {
+  const [actionStatuses, setActionStatuses] = useState<ActionStatus[]>([])
+  const [showForm, setShowForm] = useState(false)
+  const [editingAction, setEditingAction] = useState<ActionDefinition | null>(null)
+  const [menuOpen, setMenuOpen] = useState<string | null>(null)
+  const settings = getActionSettings()
+  const today = getEffectiveToday(settings.dayResetHour)
+
+  const refreshActions = useCallback(() => {
+    const allActions = getActionDefinitions().filter(a => a.active)
+    const dueActions = allActions.filter(a => {
+      if (a.frequency.type === 'times_per_week') {
+        const completed = getCompletedDaysThisWeek(a.id, today)
+        return isActionDueOnDate(a, today, completed)
+      }
+      return isActionDueOnDate(a, today)
+    })
+    setActionStatuses(runAutoCompleteChecks(dueActions, today))
+  }, [today])
+
+  useEffect(() => {
+    refreshActions()
+    window.addEventListener('focus', refreshActions)
+    return () => window.removeEventListener('focus', refreshActions)
+  }, [refreshActions])
+
+  const handleToggle = (actionId: string, currentCompleted: boolean) => {
+    saveDailyEntry({
+      actionId,
+      date: today,
+      completed: !currentCompleted,
+      completedAt: !currentCompleted ? new Date().toISOString() : undefined,
+      autoCompleted: false,
+    })
+    refreshActions()
+    window.dispatchEvent(new Event('healthspan:actions-updated'))
+  }
+
+  const handleSave = (def: ActionDefinition) => {
+    saveActionDefinition(def)
+    setShowForm(false)
+    setEditingAction(null)
+    refreshActions()
+    window.dispatchEvent(new Event('healthspan:actions-updated'))
+  }
+
+  const handleDelete = (id: string) => {
+    deleteActionDefinition(id)
+    setMenuOpen(null)
+    refreshActions()
+    window.dispatchEvent(new Event('healthspan:actions-updated'))
+  }
+
+  const completed = actionStatuses.filter(s => s.completed).length
+  const total = actionStatuses.length
+  const allActions = getActionDefinitions()
+
+  const todayDate = new Date(today + 'T12:00:00')
+  const dateStr = todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+
+  // Empty state
+  if (allActions.length === 0 && !showForm) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-16 h-16 rounded-full bg-brand-500/10 flex items-center justify-center mb-4">
+          <CircleCheck size={28} className="text-brand-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-200 mb-2">Set up your daily actions</h3>
+        <p className="text-sm text-slate-500 max-w-md mb-6">
+          Create a daily checklist to stay on track. Actions can auto-complete when you log data in other sections.
+        </p>
+        <button
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
+        >
+          <Plus size={16} />
+          Add your first action
+        </button>
+        {showForm && (
+          <ActionForm
+            initial={null}
+            nextSortOrder={0}
+            onSave={handleSave}
+            onCancel={() => setShowForm(false)}
+          />
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {/* Progress header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <div className="text-[13px] text-slate-400">{dateStr}</div>
+          {total > 0 && (
+            <div className="text-sm text-slate-500 mt-0.5">
+              <span className="text-emerald-400 font-semibold">{completed}</span> of {total} complete
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-[11px] text-slate-500">Day resets at:</label>
+          <select
+            value={settings.dayResetHour}
+            onChange={e => {
+              saveActionSettings({ ...settings, dayResetHour: Number(e.target.value) })
+              refreshActions()
+              window.dispatchEvent(new Event('healthspan:actions-updated'))
+            }}
+            className="bg-white/[0.06] border border-white/10 rounded px-2 py-1 text-xs text-gray-300"
+          >
+            {Array.from({ length: 24 }, (_, i) => (
+              <option key={i} value={i}>
+                {i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {total > 0 && (
+        <div className="h-1.5 bg-white/[0.06] rounded-full mb-6 overflow-hidden">
+          <div
+            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+            style={{ width: `${(completed / total) * 100}%` }}
+          />
+        </div>
+      )}
+
+      {/* Action cards */}
+      <div className="space-y-2">
+        {actionStatuses.map(({ action, completed: isDone, autoCompleted }) => {
+          const DomainIcon = action.domain ? DOMAIN_ICONS[action.domain] : CircleCheck
+          return (
+            <div
+              key={action.id}
+              className={`flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-[14px] px-4 py-3.5 transition-all ${
+                isDone ? 'opacity-50' : ''
+              }`}
+            >
+              <button
+                onClick={() => handleToggle(action.id, isDone)}
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                  isDone
+                    ? 'border-emerald-500 bg-emerald-500'
+                    : 'border-slate-600 hover:border-slate-400'
+                }`}
+              >
+                {isDone && <Check size={14} className="text-white" />}
+              </button>
+
+              <div className="flex-1 min-w-0">
+                <div className={`text-sm font-medium ${isDone ? 'text-slate-500 line-through' : 'text-gray-200'}`}>
+                  {action.label}
+                </div>
+                {autoCompleted && isDone && (
+                  <span className="inline-block mt-0.5 text-[9px] tracking-wider uppercase text-emerald-400/70 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                    auto
+                  </span>
+                )}
+              </div>
+
+              <DomainIcon size={16} className="text-slate-600 flex-shrink-0" />
+
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(menuOpen === action.id ? null : action.id)}
+                  className="p-1 rounded hover:bg-white/10 text-slate-600 hover:text-slate-400"
+                >
+                  <MoreVertical size={14} />
+                </button>
+                {menuOpen === action.id && (
+                  <div className="absolute right-0 top-8 z-10 bg-[#1a1d2e] border border-white/10 rounded-lg shadow-xl py-1 min-w-[120px]">
+                    <button
+                      onClick={() => { setEditingAction(action); setShowForm(true); setMenuOpen(null) }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-300 hover:bg-white/5"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(action.id)}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-400 hover:bg-white/5"
+                    >
+                      <Trash2 size={12} /> Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Add button */}
+      {!showForm && (
+        <button
+          onClick={() => { setEditingAction(null); setShowForm(true) }}
+          className="flex items-center gap-2 mt-4 px-4 py-2.5 rounded-lg border border-dashed border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20 text-sm transition-colors w-full justify-center"
+        >
+          <Plus size={16} />
+          Add action
+        </button>
+      )}
+
+      {/* Add/Edit form */}
+      {showForm && (
+        <ActionForm
+          initial={editingAction}
+          nextSortOrder={allActions.length}
+          onSave={handleSave}
+          onCancel={() => { setShowForm(false); setEditingAction(null) }}
+        />
+      )}
+    </>
+  )
+}
+
 export default function Dashboard() {
-  const [tab, setTab] = useState('Trends')
+  const [tab, setTab] = useState('Today')
   const [range, setRange] = useState(90)
 
   const ouraData = useMemo(() => getOuraData(), [])
@@ -584,6 +990,7 @@ export default function Dashboard() {
       </div>
 
       {/* Content */}
+      {tab === 'Today' && <TodayTab />}
       {tab === 'Trends' && renderTrends()}
       {tab === 'Overview' && renderOverview()}
       {tab === 'Sleep' && renderSleep()}
