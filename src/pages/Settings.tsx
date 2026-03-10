@@ -15,7 +15,7 @@ export default function Settings() {
   const [hasSavedKey, setHasSavedKey] = useState(false)
   const [justCleared, setJustCleared] = useState(false)
   const [userAge, setUserAge] = useState(() => localStorage.getItem('healthspan:userAge') ?? '35')
-  const [userSex, setUserSex] = useState(() => localStorage.getItem('healthspan:userSex') ?? 'male')
+  const [userBirthSex, setUserBirthSex] = useState(() => localStorage.getItem('healthspan:userBirthSex') ?? 'male')
   const [demoActive] = useState(() => isDemoMode())
   const [activePersona] = useState(() => getActivePersona())
 
@@ -50,8 +50,8 @@ export default function Settings() {
     localStorage.setItem('healthspan:userAge', val)
   }
   function saveSex(val: string) {
-    setUserSex(val)
-    localStorage.setItem('healthspan:userSex', val)
+    setUserBirthSex(val)
+    localStorage.setItem('healthspan:userBirthSex', val)
   }
 
   function handleOuraImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -216,14 +216,15 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Biological Sex</label>
+            <label className="text-xs text-gray-500 mb-1 block">Birth Sex</label>
             <select
-              value={userSex}
+              value={userBirthSex}
               onChange={e => saveSex(e.target.value)}
               className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-gray-300 focus:outline-none"
             >
               <option value="male">Male</option>
               <option value="female">Female</option>
+              <option value="intersex">Intersex</option>
             </select>
           </div>
         </div>

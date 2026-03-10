@@ -7,6 +7,7 @@ import { parseHevyCsv } from '../utils/exercise-parsers/hevy'
 import { parseStravaActivities } from '../utils/exercise-parsers/strava'
 import { parseAppleHealthXml } from '../utils/exercise-parsers/apple-health'
 import { getVO2MaxTargets } from '../data/vo2max-targets'
+import { getEffectiveReferenceRange } from '../utils/profile-storage'
 import type { ExerciseWorkout, VO2MaxEntry, ExerciseSettings } from '../types/exercise'
 
 const ZONE2_GOAL = 180
@@ -391,7 +392,7 @@ interface VO2MaxTabProps {
 
 function VO2MaxTab({ entries, form, setForm, onSave }: VO2MaxTabProps) {
   const userAge = parseInt(localStorage.getItem('healthspan:userAge') ?? '35', 10)
-  const userSex = (localStorage.getItem('healthspan:userSex') ?? 'male') as 'male' | 'female'
+  const userSex = getEffectiveReferenceRange()
   const targets = getVO2MaxTargets(userAge, userSex)
 
   const allSorted = [...entries].sort((a, b) => a.date.localeCompare(b.date))

@@ -16,7 +16,7 @@ import type { NutritionEntry, MealType } from '../types/nutrition'
 import type { MoleculeDefinition, MoleculeEntry } from '../types/molecules'
 import type { ActionDefinition, DailyActionEntry, ActionFrequency } from '../types/actions'
 
-export type Sex = 'male' | 'female'
+export type BirthSex = 'male' | 'female' | 'intersex'
 
 export interface PersonaTraits {
   sleepScoreBase?: number
@@ -45,7 +45,7 @@ export interface DemoPersona {
   name: string
   description: string
   age: number
-  sex: 'male' | 'female'
+  sex: BirthSex
   traits: PersonaTraits
 }
 
@@ -420,7 +420,7 @@ function generateOuraData(traits: PersonaTraits): OuraData {
 
 // ─── Lab Results ───
 
-function computeMarkerStatus(value: number, marker: MarkerDefinition, sex: Sex): MarkerStatus {
+function computeMarkerStatus(value: number, marker: MarkerDefinition, sex: BirthSex): MarkerStatus {
   const { low, high } = marker.attentionThreshold
   if (low !== undefined && value < low) return 'attention'
   if (high !== undefined && value > high) return 'attention'
@@ -456,7 +456,7 @@ function generateValueInRange(low: number | null, high: number | null): number {
 function generateValueForFlag(
   flag: 'optimal' | 'acceptable' | 'attention',
   marker: MarkerDefinition,
-  sex: Sex,
+  sex: BirthSex,
 ): number {
   const ranges = sex === 'female' && marker.sexVariant?.female
     ? marker.sexVariant.female
@@ -501,7 +501,7 @@ function generateValueForFlag(
   return generateValueInRange(ranges.optimal[0], ranges.optimal[1])
 }
 
-function generateLabResults(sex: Sex, traits: PersonaTraits): LabResult[] {
+function generateLabResults(sex: BirthSex, traits: PersonaTraits): LabResult[] {
   const drawDays = [0, 60, 120]
   const bloodworkFlags = traits.bloodworkFlags ?? {}
 
@@ -652,7 +652,7 @@ function generateExerciseWorkouts(traits: PersonaTraits): ExerciseWorkout[] {
 
 // ─── VO2 Max ───
 
-function generateVO2MaxEntries(sex: Sex, traits: PersonaTraits): VO2MaxEntry[] {
+function generateVO2MaxEntries(sex: BirthSex, traits: PersonaTraits): VO2MaxEntry[] {
   const base = traits.vo2max ?? (sex === 'male' ? 55 : 50)
   return [90, 45, 0].map((daysAgo, i) => ({
     id: `demo-vo2max-${i}`,
@@ -743,7 +743,7 @@ const MEAL_NAMES: Record<MealType, string[]> = {
   snack: ['Protein bar', 'Mixed nuts', 'Cottage cheese'],
 }
 
-function generateNutritionData(sex: Sex, traits: PersonaTraits): { entries: NutritionEntry[], settings: { bodyweightLbs: number, dailyCalorieTarget: number } } {
+function generateNutritionData(sex: BirthSex, traits: PersonaTraits): { entries: NutritionEntry[], settings: { bodyweightLbs: number, dailyCalorieTarget: number } } {
   const bodyweightLbs = traits.bodyweightLbs ?? (sex === 'male' ? 180 : 140)
   const dailyCalorieTarget = traits.dailyCalorieTarget ?? (sex === 'male' ? 2800 : 2200)
   const proteinPerLb = traits.proteinPerLb ?? 1
@@ -971,6 +971,6 @@ export function generateAllDemoData(persona: DemoPersona): void {
   generateDemoActions(traits)
 
   localStorage.setItem('healthspan:userAge', String(age))
-  localStorage.setItem('healthspan:userSex', sex)
+  localStorage.setItem('healthspan:userBirthSex', sex)
   localStorage.setItem(DEMO_MODE_KEY, persona.id)
 }

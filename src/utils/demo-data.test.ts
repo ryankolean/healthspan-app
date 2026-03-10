@@ -75,7 +75,7 @@ describe('generateAllDemoData', () => {
   it('sets userAge and userSex', () => {
     generateAllDemoData(FEMALE_PERSONA)
     expect(localStorage.getItem('healthspan:userAge')).toBe('22')
-    expect(localStorage.getItem('healthspan:userSex')).toBe('female')
+    expect(localStorage.getItem('healthspan:userBirthSex')).toBe('female')
   })
 
   it('uses today-relative dates — most recent oura day is today or yesterday', () => {
@@ -363,7 +363,7 @@ describe('isDemoMode / getDemoMode / clearDemoData', () => {
     expect(localStorage.getItem('healthspan:nutrition:entries')).toBeNull()
     expect(localStorage.getItem('healthspan:molecules:definitions')).toBeNull()
     expect(localStorage.getItem('healthspan:userAge')).toBeNull()
-    expect(localStorage.getItem('healthspan:userSex')).toBeNull()
+    expect(localStorage.getItem('healthspan:userBirthSex')).toBeNull()
     // apiKey preserved
     expect(localStorage.getItem('healthspan:apiKey')).toBe('test-api-key-12345')
   })
@@ -405,7 +405,7 @@ describe('persona-driven generation', () => {
     const persona = DEMO_PERSONAS.find(p => p.id === 'longevity-optimized')!
     generateAllDemoData(persona)
     expect(localStorage.getItem('healthspan:userAge')).toBe('45')
-    expect(localStorage.getItem('healthspan:userSex')).toBe('female')
+    expect(localStorage.getItem('healthspan:userBirthSex')).toBe('female')
   })
 
   it('sets demoMode flag with persona id', () => {
