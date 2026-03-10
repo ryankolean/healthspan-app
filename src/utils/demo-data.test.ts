@@ -505,4 +505,20 @@ describe('demo actions quality', () => {
     const weekendRate = weekendCompleted / weekendTotal
     expect(weekdayRate).toBeGreaterThan(weekendRate)
   })
+
+  it('all personas generate valid action data without errors', () => {
+    for (const persona of DEMO_PERSONAS) {
+      localStorage.clear()
+      generateAllDemoData(persona)
+      const actions = getActionDefinitions()
+      expect(actions.length).toBeGreaterThanOrEqual(8) // 6 core + 2+ extras
+      // Verify all action ids are unique
+      const ids = actions.map(a => a.id)
+      expect(new Set(ids).size).toBe(ids.length)
+      // Verify today has entries
+      const today = new Date().toISOString().slice(0, 10)
+      const todayEntries = getDailyEntries(today)
+      expect(todayEntries.length).toBeGreaterThan(0)
+    }
+  })
 })
