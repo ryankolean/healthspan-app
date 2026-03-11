@@ -66,4 +66,34 @@ describe('Onboarding wizard', () => {
     fireEvent.click(screen.getByText(/skip for now/i))
     expect(screen.getByText(/health records/i)).toBeInTheDocument()
   })
+
+  describe('Step 2: Wearables', () => {
+    function advanceToStep2() {
+      renderOnboarding()
+      fireEvent.change(screen.getByLabelText(/age/i), { target: { value: '30' } })
+      fireEvent.change(screen.getByLabelText(/birth sex/i), { target: { value: 'male' } })
+      fireEvent.change(screen.getByLabelText(/gender identity/i), { target: { value: 'male' } })
+      fireEvent.change(screen.getByLabelText(/height/i), { target: { value: '180' } })
+      fireEvent.change(screen.getByLabelText(/weight/i), { target: { value: '80' } })
+      fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    }
+
+    it('shows wearable device cards', () => {
+      advanceToStep2()
+      expect(screen.getByText(/oura ring/i)).toBeInTheDocument()
+      expect(screen.getByText(/apple watch/i)).toBeInTheDocument()
+      expect(screen.getByText(/hevy/i)).toBeInTheDocument()
+    })
+
+    it('shows skip button', () => {
+      advanceToStep2()
+      expect(screen.getByText(/skip for now/i)).toBeInTheDocument()
+    })
+
+    it('advances to step 3 when skip clicked', () => {
+      advanceToStep2()
+      fireEvent.click(screen.getByText(/skip for now/i))
+      expect(screen.getByText(/health records/i)).toBeInTheDocument()
+    })
+  })
 })

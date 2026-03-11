@@ -1,14 +1,62 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Watch, FileText } from 'lucide-react'
+import { User, Watch, FileText, Check } from 'lucide-react'
 import { saveUserProfile, setOnboardingComplete } from '../utils/profile-storage'
 import type { BirthSex, GenderIdentity, UserProfile } from '../types/profile'
+
+const WEARABLES = [
+  { name: 'Oura Ring', format: 'JSON' },
+  { name: 'Apple Watch', format: 'XML' },
+  { name: 'Fitbit', format: 'JSON' },
+  { name: 'WHOOP', format: 'JSON' },
+  { name: 'Strava', format: 'JSON' },
+  { name: 'Hevy', format: 'CSV' },
+] as const
+
+const FORMAT_ACCEPT: Record<string, string> = {
+  JSON: '.json',
+  XML: '.xml',
+  CSV: '.csv',
+}
 
 const STEPS = [
   { label: 'Profile', icon: User },
   { label: 'Wearables', icon: Watch },
   { label: 'Health Records', icon: FileText },
 ]
+
+function WearableCard({ name, format }: { name: string; format: string }) {
+  const [imported, setImported] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  return (
+    <button
+      type="button"
+      onClick={() => inputRef.current?.click()}
+      className={`bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 hover:bg-white/[0.06] transition-colors text-left ${
+        imported ? 'border-brand-500/40' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm font-medium text-white">{name}</span>
+        {imported && <Check className="w-4 h-4 text-brand-400" />}
+      </div>
+      <span className="text-xs text-white/40">{format}</span>
+      {imported && (
+        <span className="block text-xs text-brand-400 mt-1">Imported</span>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept={FORMAT_ACCEPT[format]}
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) setImported(true)
+        }}
+      />
+    </button>
+  )
+}
 
 export default function Onboarding() {
   const navigate = useNavigate()
@@ -240,11 +288,18 @@ export default function Onboarding() {
 
         {/* Step 1: Wearables */}
         {step === 1 && (
-          <div className="text-center">
+          <div>
             <h1 className="text-2xl font-bold mb-1">Connect Wearables</h1>
-            <p className="text-white/60 mb-8 text-sm">
-              Sync your devices to automatically track your health data.
+            <p className="text-white/60 mb-6 text-sm">
+              Import data from your devices to automatically track your health.
             </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {WEARABLES.map((w) => (
+                <WearableCard key={w.name} name={w.name} format={w.format} />
+              ))}
+            </div>
+
             <div className="space-y-3">
               <button
                 onClick={() => setStep(2)}
