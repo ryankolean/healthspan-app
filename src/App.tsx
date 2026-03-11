@@ -8,11 +8,22 @@ import Sleep from './pages/Sleep'
 import Emotional from './pages/Emotional'
 import Nutrition from './pages/Nutrition'
 import Molecules from './pages/Molecules'
+import Onboarding from './pages/Onboarding'
+import { isOnboardingComplete } from './utils/profile-storage'
+import { isDemoMode } from './utils/demo-data'
+
+function OnboardingGuard({ children }: { children: React.ReactNode }) {
+  if (!isOnboardingComplete() && !isDemoMode()) {
+    return <Navigate to="/onboarding" replace />
+  }
+  return <>{children}</>
+}
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route path="/onboarding" element={<Onboarding />} />
+      <Route element={<OnboardingGuard><Layout /></OnboardingGuard>}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/bloodwork" element={<Bloodwork />} />

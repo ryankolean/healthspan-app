@@ -300,6 +300,21 @@ export default function Settings() {
           </div>
         )}
       </section>
+
+      {/* ─── Onboarding ─── */}
+      <section className="bg-white/[0.04] border border-white/[0.08] rounded-[18px] p-6 mt-6">
+        <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider mb-4">Onboarding</h2>
+        <p className="text-sm text-gray-400 mb-4">Re-run the setup wizard to update your profile or import new data.</p>
+        <button
+          onClick={() => {
+            localStorage.removeItem('healthspan:onboardingComplete')
+            window.location.href = '/onboarding'
+          }}
+          className="px-4 py-2.5 bg-white/[0.06] hover:bg-white/[0.1] text-gray-300 text-sm rounded-xl transition-colors"
+        >
+          Re-run Setup Wizard
+        </button>
+      </section>
     </div>
   )
 }
