@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Watch, FileText, Check } from 'lucide-react'
+import { User, Watch, FileText, Check, Upload, X } from 'lucide-react'
 import { saveUserProfile, setOnboardingComplete } from '../utils/profile-storage'
 import type { BirthSex, GenderIdentity, UserProfile } from '../types/profile'
 
@@ -61,6 +61,10 @@ function WearableCard({ name, format }: { name: string; format: string }) {
 export default function Onboarding() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
+
+  // Step 3 file state
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const healthFileInputRef = useRef<HTMLInputElement>(null)
 
   // Step 1 form state
   const [age, setAge] = useState('')
@@ -319,12 +323,78 @@ export default function Onboarding() {
 
         {/* Step 2: Health Records */}
         {step === 2 && (
-          <div className="text-center">
+          <div>
             <h1 className="text-2xl font-bold mb-1">Health Records</h1>
-            <p className="text-white/60 mb-8 text-sm">
-              Import your medical data to get a comprehensive view of your well-being.
+            <p className="text-white/60 mb-6 text-sm">
+              Upload lab reports to get a comprehensive view of your well-being. You can process them later from the Bloodwork page.
             </p>
-            <div className="space-y-3">
+
+            {/* Drop zone */}
+            <button
+              type="button"
+              onClick={() => healthFileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                if (e.dataTransfer.files.length) {
+                  setUploadedFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)])
+                }
+              }}
+              className="w-full border-2 border-dashed border-white/[0.12] rounded-xl p-8 flex flex-col items-center gap-3 hover:border-white/[0.24] transition-colors cursor-pointer"
+            >
+              <Upload className="w-8 h-8 text-white/40" />
+              <span className="text-sm text-white/60">
+                Drag and drop files here, or click to browse
+              </span>
+              <span className="text-xs text-white/30">Accepts JPG, PNG, PDF</span>
+            </button>
+            <input
+              ref={healthFileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) {
+                  setUploadedFiles((prev) => [...prev, ...Array.from(e.target.files!)])
+                }
+              }}
+            />
+
+            {/* File list */}
+            {uploadedFiles.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {uploadedFiles.map((file, idx) => (
+                  <div
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center justify-between bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <span className="text-sm text-white truncate block">{file.name}</span>
+                      <span className="text-xs text-white/40">
+                        {file.size < 1024
+                          ? `${file.size} B`
+                          : file.size < 1024 * 1024
+                            ? `${(file.size / 1024).toFixed(1)} KB`
+                            : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      className="ml-2 p-1 text-white/40 hover:text-white transition-colors"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-3 mt-6">
               <button
                 onClick={handleFinish}
                 className="w-full py-2.5 rounded-lg font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors"

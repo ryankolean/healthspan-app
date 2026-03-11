@@ -96,4 +96,42 @@ describe('Onboarding wizard', () => {
       expect(screen.getByText(/health records/i)).toBeInTheDocument()
     })
   })
+
+  describe('Step 3: Health Records', () => {
+    function advanceToStep3() {
+      renderOnboarding()
+      // Fill profile
+      fireEvent.change(screen.getByLabelText(/age/i), { target: { value: '30' } })
+      fireEvent.change(screen.getByLabelText(/birth sex/i), { target: { value: 'male' } })
+      fireEvent.change(screen.getByLabelText(/gender identity/i), { target: { value: 'male' } })
+      fireEvent.change(screen.getByLabelText(/height/i), { target: { value: '180' } })
+      fireEvent.change(screen.getByLabelText(/weight/i), { target: { value: '80' } })
+      fireEvent.click(screen.getByRole('button', { name: /next/i }))
+      // Skip wearables
+      fireEvent.click(screen.getByText(/skip for now/i))
+    }
+
+    it('shows upload area for health records', () => {
+      advanceToStep3()
+      expect(screen.getByText(/health records/i)).toBeInTheDocument()
+      expect(screen.getByText(/drag and drop/i)).toBeInTheDocument()
+    })
+
+    it('shows accepted file types', () => {
+      advanceToStep3()
+      expect(screen.getByText(/jpg.*png.*pdf/i)).toBeInTheDocument()
+    })
+
+    it('has finish button', () => {
+      advanceToStep3()
+      const finishBtn = screen.getByRole('button', { name: /finish/i })
+      expect(finishBtn).toBeInTheDocument()
+    })
+
+    it('sets onboarding complete when finish is clicked', () => {
+      advanceToStep3()
+      fireEvent.click(screen.getByRole('button', { name: /finish/i }))
+      expect(localStorage.getItem('healthspan:onboardingComplete')).toBe('true')
+    })
+  })
 })
