@@ -1,8 +1,13 @@
 import type { NutritionSettings } from '../types/nutrition'
+import { getCurrentWeightKg } from '../utils/body-composition-storage'
 
 export type NutritionStatus = 'green' | 'amber' | 'red'
 
 export function getProteinTarget(settings: NutritionSettings): number {
+  const currentKg = getCurrentWeightKg()
+  if (currentKg) {
+    return Math.round(currentKg * 2.20462) // kg to lbs, 1g/lb
+  }
   return settings.bodyweightLbs
 }
 

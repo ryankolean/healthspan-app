@@ -3,6 +3,7 @@ import { Apple } from 'lucide-react'
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts'
 import { getNutritionEntries, saveNutritionEntry, deleteNutritionEntry, getEntriesByDate, getDailyTotals, getNutritionSettings, saveNutritionSettings } from '../utils/nutrition-storage'
 import { getNutritionStatus, getProteinTarget, getCalorieRange } from '../data/nutrition-targets'
+import { getCurrentWeightKg } from '../utils/body-composition-storage'
 import type { NutritionEntry, NutritionSettings, MealType } from '../types/nutrition'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -356,7 +357,7 @@ function OverviewTab({ entries, settings, chartData, onSwitchToSources }: {
           <div className="text-xl font-bold font-mono" style={{ color: proteinStatus ? STATUS_COLORS[proteinStatus] : '#6b7280' }}>
             {avgProtein.toFixed(0)}g / {proteinTarget}g target
           </div>
-          <div className="text-xs text-gray-500 mt-0.5">Target: 1g per lb bodyweight ({settings.bodyweightLbs} lbs)</div>
+          <div className="text-xs text-gray-500 mt-0.5">Target: 1g per lb bodyweight ({(() => { const kg = getCurrentWeightKg(); return kg ? Math.round(kg * 2.20462) : settings.bodyweightLbs })()} lbs)</div>
         </div>
       )}
 
