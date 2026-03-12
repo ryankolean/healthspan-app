@@ -15,7 +15,7 @@ import { getMoleculeEntries, getDefinitions, getDailyAdherence } from '../utils/
 import { getAdherenceStatus } from '../data/molecules-targets'
 import { Link } from 'react-router-dom'
 import {
-  AlertTriangle, Plus, Check, MoreVertical, CircleCheck, Dumbbell, Apple, Moon, Brain, Pill, X, Pencil, Trash2,
+  AlertTriangle, Plus, Check, MoreVertical, CircleCheck, Dumbbell, Apple, Moon, Brain, Pill, X, Pencil, Trash2, Scale,
 } from 'lucide-react'
 import {
   getActionDefinitions, getActionSettings, getEffectiveToday,
@@ -28,6 +28,10 @@ import { DOMAIN_RULES, DOMAIN_LABELS } from '../data/actions-rules'
 import type { ActionDefinition, ActionDomain, AutoCompleteRule, ActionFrequency } from '../types/actions'
 import { v4 as uuid } from 'uuid'
 import { METRICS, METRIC_CATEGORIES } from '../utils/metrics'
+import { getBodyCompEntries, getLatestEntry, getCurrentWeightKg, calculateBMI, saveBodyCompEntry } from '../utils/body-composition-storage'
+import { getBMIStatus, getBodyFatStatus } from '../data/body-composition-targets'
+import { getEffectiveReferenceRange } from '../utils/profile-storage'
+import type { BodyCompEntry } from '../types/body-composition'
 import { computeTrend, computeOverallScore } from '../utils/trends'
 import { fmt, fmtFull, hrs, avgArr, scoreColor, filterByRange } from '../utils/helpers'
 import { Stat, ChartCard, ChartTooltip, TrendCard, dirColors, dirIcons, zoneColors } from '../components/Charts'
@@ -263,6 +267,237 @@ function ActionForm({ initial, nextSortOrder, onSave, onCancel }: ActionFormProp
   )
 }
 
+const STATUS_COLORS: Record<string, string> = { green: '#10b981', yellow: '#f59e0b', red: '#ef4444' }
+
+function BodySection() {
+  const [entries, setEntries] = useState<BodyCompEntry[]>(() => getBodyCompEntries())
+  const [showForm, setShowForm] = useState(false)
+  const [weightLbs, setWeightLbs] = useState('')
+  const [bodyFatPct, setBodyFatPct] = useState('')
+  const [waistIn, setWaistIn] = useState('')
+  const [note, setNote] = useState('')
+
+  const latest = useMemo(() => entries.length > 0 ? entries[0] : null, [entries])
+  const heightCm = useMemo(() => {
+    const h = localStorage.getItem('healthspan:userHeight')
+    return h ? Number(h) : null
+  }, [])
+
+  const weightDisplay = useMemo(() => {
+    if (latest) return (latest.weightKg * 2.20462).toFixed(1)
+    const profileKg = getCurrentWeightKg()
+    if (profileKg) return (profileKg * 2.20462).toFixed(1)
+    return null
+  }, [latest])
+
+  const weightTrend = useMemo(() => {
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const cutoff = sevenDaysAgo.toISOString().split('T')[0]
+    const recent = entries.filter(e => e.date >= cutoff).sort((a, b) => a.date.localeCompare(b.date))
+    if (recent.length < 2) return null
+    const deltaKg = recent[recent.length - 1].weightKg - recent[0].weightKg
+    const deltaLbs = deltaKg * 2.20462
+    return deltaLbs
+  }, [entries])
+
+  const bmiData = useMemo(() => {
+    const wKg = latest?.weightKg ?? getCurrentWeightKg()
+    if (!wKg || !heightCm) return null
+    const bmi = calculateBMI(wKg, heightCm)
+    if (!bmi) return null
+    return getBMIStatus(bmi)
+  }, [latest, heightCm])
+
+  const bodyFatData = useMemo(() => {
+    if (!latest?.bodyFatPct) return null
+    const refRange = getEffectiveReferenceRange()
+    return getBodyFatStatus(latest.bodyFatPct, refRange)
+  }, [latest])
+
+  const leanMassLbs = useMemo(() => {
+    if (!latest?.leanMassKg) return null
+    return (latest.leanMassKg * 2.20462).toFixed(1)
+  }, [latest])
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault()
+    const wLbs = parseFloat(weightLbs)
+    if (!wLbs || wLbs <= 0) return
+    const entry: BodyCompEntry = {
+      id: uuid(),
+      date: new Date().toISOString().split('T')[0],
+      weightKg: wLbs / 2.20462,
+      ...(bodyFatPct ? { bodyFatPct: parseFloat(bodyFatPct) } : {}),
+      ...(waistIn ? { waistCm: parseFloat(waistIn) * 2.54 } : {}),
+      ...(note ? { note } : {}),
+    }
+    saveBodyCompEntry(entry)
+    setEntries(getBodyCompEntries())
+    setWeightLbs('')
+    setBodyFatPct('')
+    setWaistIn('')
+    setNote('')
+    setShowForm(false)
+  }
+
+  const trendColor = weightTrend === null ? '#9ca3af'
+    : Math.abs(weightTrend) < 0.5 ? '#9ca3af'
+    : weightTrend < 0 ? '#10b981' : '#ef4444'
+  const trendArrow = weightTrend === null ? ''
+    : Math.abs(weightTrend) < 0.5 ? ''
+    : weightTrend < 0 ? '↓' : '↑'
+
+  return (
+    <div className="mt-8">
+      {/* Section header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Scale size={18} className="text-gray-400" />
+          <h3 className="text-sm font-semibold text-gray-200">Body</h3>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors"
+        >
+          {showForm ? '− Cancel' : '+ Log'}
+        </button>
+      </div>
+
+      {/* Inline log form */}
+      {showForm && (
+        <form onSubmit={handleSave} className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-4 mb-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] text-gray-500 uppercase tracking-wider">Weight *</label>
+              <input
+                type="number"
+                step="0.1"
+                required
+                placeholder="lbs"
+                value={weightLbs}
+                onChange={e => setWeightLbs(e.target.value)}
+                className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-500 uppercase tracking-wider">Body Fat %</label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="%"
+                value={bodyFatPct}
+                onChange={e => setBodyFatPct(e.target.value)}
+                className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-500 uppercase tracking-wider">Waist</label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="in"
+                value={waistIn}
+                onChange={e => setWaistIn(e.target.value)}
+                className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-500 uppercase tracking-wider">Note</label>
+              <input
+                type="text"
+                placeholder="Optional"
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="w-full py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
+          >
+            Save
+          </button>
+        </form>
+      )}
+
+      {/* Metric cards 2x2 */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Weight */}
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-4">
+          <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Weight</div>
+          <div className="text-xl font-bold text-gray-100">
+            {weightDisplay ? `${weightDisplay} lbs` : '—'}
+          </div>
+          {weightTrend !== null && Math.abs(weightTrend) >= 0.5 && (
+            <div className="text-[11px] mt-1" style={{ color: trendColor }}>
+              {trendArrow} {Math.abs(weightTrend).toFixed(1)} lbs (7d)
+            </div>
+          )}
+          {!latest && weightDisplay && (
+            <div className="text-[11px] text-gray-600 mt-1">from profile</div>
+          )}
+        </div>
+
+        {/* BMI */}
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-4">
+          <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">BMI</div>
+          {bmiData ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="text-xl font-bold text-gray-100">{bmiData.value.toFixed(1)}</div>
+                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: STATUS_COLORS[bmiData.color] }} />
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1 capitalize">
+                {bmiData.standard}
+                {bmiData.longevityOptimal && (
+                  <span className="ml-1.5 text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
+                    Longevity ✓
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-xl font-bold text-gray-100">—</div>
+          )}
+        </div>
+
+        {/* Body Fat % */}
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-4">
+          <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Body Fat</div>
+          {bodyFatData ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="text-xl font-bold text-gray-100">{bodyFatData.value.toFixed(1)}%</div>
+                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: STATUS_COLORS[bodyFatData.color] }} />
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1 capitalize">
+                {bodyFatData.standard}
+                {bodyFatData.longevityOptimal && (
+                  <span className="ml-1.5 text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
+                    Longevity ✓
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-xl font-bold text-gray-100">—</div>
+          )}
+        </div>
+
+        {/* Lean Mass */}
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-4">
+          <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Lean Mass</div>
+          <div className="text-xl font-bold text-gray-100">
+            {leanMassLbs ? `${leanMassLbs} lbs` : '—'}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TodayTab() {
   const [actionStatuses, setActionStatuses] = useState<ActionStatus[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -463,6 +698,8 @@ function TodayTab() {
           onCancel={() => { setShowForm(false); setEditingAction(null) }}
         />
       )}
+
+      <BodySection />
     </>
   )
 }
