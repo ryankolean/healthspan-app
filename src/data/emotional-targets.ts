@@ -12,6 +12,7 @@ export const EMOTIONAL_TARGETS: readonly EmotionalTarget[] = [
   { id: 'stress',  label: 'Stress',  unit: '/5', greenMin: 2, amberMin: 3, lowerIsBetter: true },
   { id: 'anxiety', label: 'Anxiety', unit: '/5', greenMin: 2, amberMin: 3, lowerIsBetter: true },
   { id: 'energy',  label: 'Energy',  unit: '/5', greenMin: 4, amberMin: 3, lowerIsBetter: false },
+  { id: 'wellbeing', label: 'Wellbeing', unit: '/5', greenMin: 4, amberMin: 3, lowerIsBetter: false },
 ] as const satisfies readonly EmotionalTarget[]
 
 export type EmotionalStatus = 'green' | 'amber' | 'red'
