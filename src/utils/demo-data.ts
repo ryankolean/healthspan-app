@@ -5,6 +5,7 @@ import { saveSleepNights } from './sleep-storage'
 import { saveEmotionalEntry } from './emotional-storage'
 import { saveNutritionEntry, saveNutritionSettings } from './nutrition-storage'
 import { saveDefinition, saveMoleculeEntry } from './molecules-storage'
+import { saveBodyCompEntry } from './body-composition-storage'
 import { BLOODWORK_MARKERS } from '../data/bloodwork-metrics'
 import type { OuraData } from '../types'
 import type { LabResult, BloodMarker, MarkerStatus } from '../types/bloodwork'
@@ -15,6 +16,7 @@ import type { EmotionalEntry } from '../types/emotional'
 import type { NutritionEntry, MealType } from '../types/nutrition'
 import type { MoleculeDefinition, MoleculeEntry } from '../types/molecules'
 import type { ActionDefinition, DailyActionEntry, ActionFrequency } from '../types/actions'
+import type { BodyCompEntry } from '../types/body-composition'
 
 export type BirthSex = 'male' | 'female' | 'intersex'
 
@@ -33,6 +35,7 @@ export interface PersonaTraits {
   moodBase?: number
   stressBase?: number
   bodyweightLbs?: number
+  bodyFatPct?: number
   dailyCalorieTarget?: number
   proteinPerLb?: number
   supplementCount?: number
@@ -70,6 +73,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       moodBase: 4.5,
       stressBase: 1.5,
       bodyweightLbs: 165,
+      bodyFatPct: 8,
       dailyCalorieTarget: 3200,
       proteinPerLb: 1.0,
       supplementCount: 6,
@@ -101,6 +105,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       moodBase: 3.5,
       stressBase: 3.0,
       bodyweightLbs: 205,
+      bodyFatPct: 28,
       dailyCalorieTarget: 2400,
       proteinPerLb: 0.7,
       supplementCount: 3,
@@ -131,6 +136,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       moodBase: 4.0,
       stressBase: 2.5,
       bodyweightLbs: 140,
+      bodyFatPct: 14,
       dailyCalorieTarget: 2400,
       proteinPerLb: 0.8,
       supplementCount: 2,
@@ -162,6 +168,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       moodBase: 2.8,
       stressBase: 3.5,
       bodyweightLbs: 240,
+      bodyFatPct: 32,
       dailyCalorieTarget: 2000,
       proteinPerLb: 0.5,
       supplementCount: 2,
@@ -193,6 +200,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       moodBase: 3.0,
       stressBase: 3.2,
       bodyweightLbs: 155,
+      bodyFatPct: 26,
       dailyCalorieTarget: 2200,
       proteinPerLb: 0.8,
       supplementCount: 4,
@@ -223,6 +231,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
       moodBase: 4.2,
       stressBase: 1.8,
       bodyweightLbs: 135,
+      bodyFatPct: 15,
       dailyCalorieTarget: 2000,
       proteinPerLb: 1.0,
       supplementCount: 6,
@@ -943,6 +952,38 @@ function isDueOnDay(action: ActionDefinition, dow: number): boolean {
   }
 }
 
+// ─── Body Composition ───
+
+function generateBodyCompData(traits: PersonaTraits): void {
+  const bodyweightLbs = traits.bodyweightLbs ?? 170
+  const baseKg = bodyweightLbs * 0.453592
+  const bodyFatPct = traits.bodyFatPct
+  const today = new Date()
+
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const ds = d.toISOString().split('T')[0]
+
+    // Daily fluctuation ±0.5kg
+    const fluctuation = (Math.random() - 0.5) * 1.0
+    const weightKg = Math.round((baseKg + fluctuation) * 10) / 10
+
+    const entry: BodyCompEntry = {
+      id: `demo-bc-${ds}`,
+      date: ds,
+      weightKg,
+    }
+
+    if (bodyFatPct != null) {
+      // Small daily variation ±1%
+      entry.bodyFatPct = Math.round((bodyFatPct + (Math.random() - 0.5) * 2) * 10) / 10
+    }
+
+    saveBodyCompEntry(entry)
+  }
+}
+
 // ─── Orchestrator ───
 
 export function generateAllDemoData(persona: DemoPersona): void {
@@ -967,6 +1008,8 @@ export function generateAllDemoData(persona: DemoPersona): void {
   const molecules = generateMoleculeData(traits)
   for (const d of molecules.definitions) saveDefinition(d)
   for (const e of molecules.entries) saveMoleculeEntry(e)
+
+  generateBodyCompData(traits)
 
   generateDemoActions(traits)
 

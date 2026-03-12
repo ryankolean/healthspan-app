@@ -8,6 +8,7 @@ import { getEmotionalEntries } from './emotional-storage'
 import { getNutritionEntries, getNutritionSettings } from './nutrition-storage'
 import { getDefinitions, getMoleculeEntries } from './molecules-storage'
 import { getActionDefinitions, getDailyEntries } from './actions-storage'
+import { getBodyCompEntries } from './body-composition-storage'
 
 const MALE_PERSONA: DemoPersona = DEMO_PERSONAS.find(p => p.sex === 'male')!
 const FEMALE_PERSONA: DemoPersona = DEMO_PERSONAS.find(p => p.sex === 'female')!
@@ -412,6 +413,21 @@ describe('persona-driven generation', () => {
     const persona = DEMO_PERSONAS.find(p => p.id === 'elite-athlete')!
     generateAllDemoData(persona)
     expect(getDemoMode()).toBe('elite-athlete')
+  })
+})
+
+describe('demo body composition', () => {
+  it('generates body comp entries for each persona', () => {
+    generateAllDemoData(DEMO_PERSONAS[0])
+    const entries = getBodyCompEntries()
+    expect(entries.length).toBeGreaterThanOrEqual(85)
+  })
+
+  it('includes body fat percentage when persona has bodyFatPct trait', () => {
+    generateAllDemoData(DEMO_PERSONAS[0]) // elite-athlete has bodyFatPct: 8
+    const entries = getBodyCompEntries()
+    const withFat = entries.filter(e => e.bodyFatPct != null)
+    expect(withFat.length).toBeGreaterThan(0)
   })
 })
 
