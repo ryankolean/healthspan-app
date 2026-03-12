@@ -737,6 +737,7 @@ function generateEmotionalEntries(traits: PersonaTraits): EmotionalEntry[] {
       stress: clamp(jitter(stressBase, 1), 1, 5),
       anxiety: clamp(jitter(stressBase, 1), 1, 5),
       energy: clamp(jitter(moodBase, 1), 1, 5),
+      wellbeing: clamp(jitter(moodBase, 1), 1, 5),
       journalText: Math.random() < 0.3 ? pick(JOURNAL_TEMPLATES) : undefined,
       createdAt: Date.now(),
     }
