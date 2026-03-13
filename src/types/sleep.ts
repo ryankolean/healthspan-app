@@ -1,4 +1,4 @@
-export type SleepSource = 'oura' | 'apple_health' | 'whoop' | 'manual'
+export type SleepSource = 'oura' | 'apple_health' | 'whoop' | 'garmin' | 'fitbit' | 'samsung' | 'manual'
 
 export interface SleepNight {
   id: string
@@ -31,5 +31,5 @@ export interface SleepSettings {
 }
 
 export const DEFAULT_SLEEP_SETTINGS = Object.freeze({
-  globalPriority: Object.freeze(['oura', 'apple_health', 'whoop', 'manual'] as const),
+  globalPriority: Object.freeze(['oura', 'apple_health', 'whoop', 'garmin', 'fitbit', 'samsung', 'manual'] as const),
 }) satisfies SleepSettings

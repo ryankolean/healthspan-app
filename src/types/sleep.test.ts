@@ -3,7 +3,7 @@ import { DEFAULT_SLEEP_SETTINGS } from './sleep'
 
 describe('Sleep types', () => {
   it('DEFAULT_SLEEP_SETTINGS has correct shape', () => {
-    expect(DEFAULT_SLEEP_SETTINGS.globalPriority).toEqual(['oura', 'apple_health', 'whoop', 'manual'])
+    expect(DEFAULT_SLEEP_SETTINGS.globalPriority).toEqual(['oura', 'apple_health', 'whoop', 'garmin', 'fitbit', 'samsung', 'manual'])
   })
 
   it('DEFAULT_SLEEP_SETTINGS is deeply frozen (as const)', () => {

@@ -1,4 +1,4 @@
-export type NutritionSource = 'manual'
+export type NutritionSource = 'manual' | 'myfitnesspal' | 'cronometer'
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
 export interface NutritionEntry {
