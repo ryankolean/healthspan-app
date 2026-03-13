@@ -762,15 +762,19 @@ export default function Dashboard() {
 
   // Emotional status
   const emotionalEntries = useMemo(() => getEmotionalEntries(), [])
-  const avgMood = useMemo(() => {
+  const { avgMood, avgWellbeing } = useMemo(() => {
     const now = new Date()
     const weekAgo = new Date(now)
     weekAgo.setDate(now.getDate() - 7)
     const cutoff = weekAgo.toISOString().slice(0, 10)
     const recent = emotionalEntries.filter(e => e.date >= cutoff)
-    if (recent.length === 0) return 0
+    if (recent.length === 0) return { avgMood: 0, avgWellbeing: 0 }
     const moods = recent.map(e => e.mood).filter((v): v is number => v != null)
-    return moods.length > 0 ? Math.round((moods.reduce((s, v) => s + v, 0) / moods.length) * 10) / 10 : 0
+    const wellbeings = recent.map(e => e.wellbeing).filter((v): v is number => v != null)
+    return {
+      avgMood: moods.length > 0 ? Math.round((moods.reduce((s, v) => s + v, 0) / moods.length) * 10) / 10 : 0,
+      avgWellbeing: wellbeings.length > 0 ? Math.round((wellbeings.reduce((s, v) => s + v, 0) / wellbeings.length) * 10) / 10 : 0,
+    }
   }, [emotionalEntries])
   const emotionalLabel = avgMood >= 4 ? 'On Track' : avgMood >= 3 ? 'Building' : avgMood > 0 ? 'Below Target' : 'No Data'
   const emotionalColor = avgMood >= 4 ? '#10b981' : avgMood >= 3 ? '#f59e0b' : '#ef4444'
@@ -970,7 +974,7 @@ export default function Dashboard() {
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] py-[18px] px-5 flex-1 basis-[180px] min-w-[160px] hover:bg-white/[0.06] transition-colors cursor-pointer">
               <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mb-1.5">Emotional</div>
               <div className="text-[24px] font-bold font-mono" style={{ color: emotionalColor }}>{emotionalLabel}</div>
-              <div className="text-[11px] text-slate-500 mt-1">{avgMood > 0 ? `${avgMood}/5 mood avg` : 'Start logging'} · {emotionalEntries.length} entries</div>
+              <div className="text-[11px] text-slate-500 mt-1">{avgMood > 0 ? `${avgMood}/5 mood` : 'Start logging'}{avgWellbeing > 0 ? ` · ${avgWellbeing}/5 wellbeing` : ''} · {emotionalEntries.length} entries</div>
             </div>
           </Link>
           <Link to="/nutrition" className="block">

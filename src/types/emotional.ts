@@ -11,6 +11,7 @@ export interface EmotionalEntry {
   stress?: number                 // 1=minimal, 5=severe (lowerIsBetter)
   anxiety?: number                // 1=calm, 5=severe (lowerIsBetter)
   energy?: number                 // 1=exhausted, 5=energized
+  wellbeing?: number              // 1=very poor, 5=excellent (WHO-5 adapted)
 
   // Journal
   journalText?: string            // text entry or voice transcript

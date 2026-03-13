@@ -1,13 +1,14 @@
 import { EMOTIONAL_TARGETS, getEmotionalStatus } from './emotional-targets'
 
 describe('EMOTIONAL_TARGETS', () => {
-  it('has entries for mood, stress, anxiety, energy', () => {
-    expect(EMOTIONAL_TARGETS).toHaveLength(4)
+  it('has entries for mood, stress, anxiety, energy, wellbeing', () => {
+    expect(EMOTIONAL_TARGETS).toHaveLength(5)
     const ids = EMOTIONAL_TARGETS.map(t => t.id)
     expect(ids).toContain('mood')
     expect(ids).toContain('stress')
     expect(ids).toContain('anxiety')
     expect(ids).toContain('energy')
+    expect(ids).toContain('wellbeing')
   })
 
   it('mood target green threshold is 4', () => {
@@ -71,6 +72,20 @@ describe('getEmotionalStatus', () => {
 
   it('returns red for energy < 3', () => {
     expect(getEmotionalStatus('energy', 2)).toBe('red')
+  })
+
+  it('returns green for wellbeing >= 4', () => {
+    expect(getEmotionalStatus('wellbeing', 4)).toBe('green')
+    expect(getEmotionalStatus('wellbeing', 5)).toBe('green')
+  })
+
+  it('returns amber for wellbeing 3', () => {
+    expect(getEmotionalStatus('wellbeing', 3)).toBe('amber')
+  })
+
+  it('returns red for wellbeing < 3', () => {
+    expect(getEmotionalStatus('wellbeing', 2)).toBe('red')
+    expect(getEmotionalStatus('wellbeing', 1)).toBe('red')
   })
 
   it('returns red for unknown metric', () => {

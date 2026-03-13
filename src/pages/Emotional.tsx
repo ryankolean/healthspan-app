@@ -43,6 +43,7 @@ function getMetricValue(entries: EmotionalEntry[], metricId: string): number | n
       if (metricId === 'stress') return e.stress
       if (metricId === 'anxiety') return e.anxiety
       if (metricId === 'energy') return e.energy
+      if (metricId === 'wellbeing') return e.wellbeing
       return undefined
     })
     .filter((v): v is number => v != null)
@@ -81,6 +82,14 @@ function energyDescriptor(v: number): string {
   return 'Energized'
 }
 
+function wellbeingDescriptor(v: number): string {
+  if (v <= 1) return 'Very Poor'
+  if (v <= 2) return 'Poor'
+  if (v <= 3) return 'Fair'
+  if (v <= 4) return 'Good'
+  return 'Excellent'
+}
+
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export default function Emotional() {
@@ -93,6 +102,8 @@ export default function Emotional() {
   const [formStress, setFormStress] = useState(2)
   const [formAnxiety, setFormAnxiety] = useState(2)
   const [formEnergy, setFormEnergy] = useState(3)
+  const [formWellbeing, setFormWellbeing] = useState(3)
+  const [checkinStep, setCheckinStep] = useState(0) // 0-4 = questions, 5 = summary
   const [formJournal, setFormJournal] = useState('')
   const [formMode, setFormMode] = useState<'text' | 'voice'>('text')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -121,6 +132,8 @@ export default function Emotional() {
     setFormStress(2)
     setFormAnxiety(2)
     setFormEnergy(3)
+    setFormWellbeing(3)
+    setCheckinStep(0)
     setFormJournal('')
     setFormMode('text')
     setEditingId(null)
@@ -139,6 +152,7 @@ export default function Emotional() {
       stress: formStress,
       anxiety: formAnxiety,
       energy: formEnergy,
+      wellbeing: formWellbeing,
       journalText: formMode === 'voice' ? transcript : formJournal,
       audioId: recordedBlob ? audioId : undefined,
       hasAudio: !!recordedBlob,
@@ -168,9 +182,11 @@ export default function Emotional() {
     setFormStress(entry.stress ?? 2)
     setFormAnxiety(entry.anxiety ?? 2)
     setFormEnergy(entry.energy ?? 3)
+    setFormWellbeing(entry.wellbeing ?? 3)
     setFormJournal(entry.journalText ?? '')
     setFormMode('text')
     setEditingId(entry.id)
+    setCheckinStep(5)
     setRecordedBlob(null)
     setTranscript('')
   }
@@ -261,7 +277,7 @@ export default function Emotional() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-100">Emotional Health</h1>
-          <p className="text-xs text-gray-500">Track mood, stress, anxiety, and energy</p>
+          <p className="text-xs text-gray-500">Track mood, stress, anxiety, energy, and wellbeing</p>
         </div>
       </div>
 
@@ -293,6 +309,8 @@ export default function Emotional() {
           formStress={formStress} setFormStress={setFormStress}
           formAnxiety={formAnxiety} setFormAnxiety={setFormAnxiety}
           formEnergy={formEnergy} setFormEnergy={setFormEnergy}
+          formWellbeing={formWellbeing} setFormWellbeing={setFormWellbeing}
+          checkinStep={checkinStep} setCheckinStep={setCheckinStep}
           formJournal={formJournal} setFormJournal={setFormJournal}
           formMode={formMode} setFormMode={setFormMode}
           editingId={editingId}
@@ -324,6 +342,7 @@ function OverviewTab({ entries }: { entries: EmotionalEntry[] }) {
     { id: 'stress', label: 'Stress' },
     { id: 'anxiety', label: 'Anxiety' },
     { id: 'energy', label: 'Energy' },
+    { id: 'wellbeing', label: 'Wellbeing' },
   ]
 
   // Mood trend area chart (last 30 days)
@@ -343,7 +362,8 @@ function OverviewTab({ entries }: { entries: EmotionalEntry[] }) {
     const stressOk = e.stress != null && getEmotionalStatus('stress', e.stress) === 'green'
     const anxietyOk = e.anxiety != null && getEmotionalStatus('anxiety', e.anxiety) === 'green'
     const energyOk = e.energy != null && getEmotionalStatus('energy', e.energy) === 'green'
-    return moodOk && stressOk && anxietyOk && energyOk
+    const wellbeingOk = e.wellbeing != null && getEmotionalStatus('wellbeing', e.wellbeing) === 'green'
+    return moodOk && stressOk && anxietyOk && energyOk && wellbeingOk
   }).length
 
   // Log today prompt
@@ -351,7 +371,7 @@ function OverviewTab({ entries }: { entries: EmotionalEntry[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {complianceCards.map(card => {
           const val = getMetricValue(last7, card.id)
           const target = EMOTIONAL_TARGETS.find(t => t.id === card.id)
@@ -431,6 +451,7 @@ function TrendsTab({ entries }: { entries: EmotionalEntry[] }) {
     date: e.date.slice(5),
     mood: e.mood ?? null,
     energy: e.energy ?? null,
+    wellbeing: e.wellbeing ?? null,
   }))
 
   const stressAnxietyData = sorted.map(e => ({
@@ -445,13 +466,14 @@ function TrendsTab({ entries }: { entries: EmotionalEntry[] }) {
     stress: e.stress ?? null,
     anxiety: e.anxiety ?? null,
     energy: e.energy ?? null,
+    wellbeing: e.wellbeing ?? null,
   }))
 
   return (
     <div className="space-y-6">
       {moodEnergyData.length > 0 && (
         <div className="bg-white/[0.03] border border-white/[0.07] rounded-[18px] p-5">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Mood + Energy (Last 30 Days)</h3>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Mood, Energy + Wellbeing (Last 30 Days)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={moodEnergyData}>
               {grid}
@@ -460,6 +482,7 @@ function TrendsTab({ entries }: { entries: EmotionalEntry[] }) {
               <Tooltip contentStyle={tooltipStyle} />
               <Line type="monotone" dataKey="mood" stroke={BRAND} strokeWidth={2} dot={false} name="Mood" connectNulls />
               <Line type="monotone" dataKey="energy" stroke={GREEN} strokeWidth={2} dot={false} name="Energy" connectNulls />
+              <Line type="monotone" dataKey="wellbeing" stroke="#8b5cf6" strokeWidth={2} dot={false} name="Wellbeing" connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -495,6 +518,7 @@ function TrendsTab({ entries }: { entries: EmotionalEntry[] }) {
               <Line type="monotone" dataKey="energy" stroke={GREEN} strokeWidth={2} dot={false} name="Energy" connectNulls />
               <Line type="monotone" dataKey="stress" stroke={AMBER} strokeWidth={2} dot={false} name="Stress" connectNulls />
               <Line type="monotone" dataKey="anxiety" stroke={RED} strokeWidth={2} dot={false} name="Anxiety" connectNulls />
+              <Line type="monotone" dataKey="wellbeing" stroke="#8b5cf6" strokeWidth={2} dot={false} name="Wellbeing" connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -543,6 +567,9 @@ function AnalysisTab({ entries }: { entries: EmotionalEntry[] }) {
   const avgStress = stressVals.length > 0 ? avg(stressVals) : null
   const avgEnergy = energyVals.length > 0 ? avg(energyVals) : null
 
+  const wellbeingVals = last30.map(e => e.wellbeing).filter((v): v is number => v != null)
+  const avgWellbeing = wellbeingVals.length > 0 ? avg(wellbeingVals) : null
+
   // Best and worst days
   const withMood = last30.filter(e => e.mood != null)
   const bestDay = withMood.length > 0 ? withMood.reduce((best, e) => (e.mood! > (best.mood ?? 0) ? e : best), withMood[0]) : null
@@ -585,8 +612,8 @@ function AnalysisTab({ entries }: { entries: EmotionalEntry[] }) {
 
       {/* Stress vs Energy */}
       <div className="bg-white/[0.03] border border-white/[0.07] rounded-[18px] p-5">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Stress vs Energy (30-Day Average)</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Stress vs Energy vs Wellbeing (30-Day Average)</h3>
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <div className="text-xs text-gray-500 mb-1">Avg Stress</div>
             <div className="text-lg font-bold font-mono" style={{ color: avgStress != null ? STATUS_COLORS[getEmotionalStatus('stress', avgStress)] : '#6b7280' }}>
@@ -597,6 +624,12 @@ function AnalysisTab({ entries }: { entries: EmotionalEntry[] }) {
             <div className="text-xs text-gray-500 mb-1">Avg Energy</div>
             <div className="text-lg font-bold font-mono" style={{ color: avgEnergy != null ? STATUS_COLORS[getEmotionalStatus('energy', avgEnergy)] : '#6b7280' }}>
               {avgEnergy != null ? `${avgEnergy.toFixed(1)}/5` : '--'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">Avg Wellbeing</div>
+            <div className="text-lg font-bold font-mono" style={{ color: avgWellbeing != null ? STATUS_COLORS[getEmotionalStatus('wellbeing', avgWellbeing)] : '#6b7280' }}>
+              {avgWellbeing != null ? `${avgWellbeing.toFixed(1)}/5` : '--'}
             </div>
           </div>
         </div>
@@ -641,6 +674,7 @@ function InsightsTab({ entries }: { entries: EmotionalEntry[] }) {
     stress: 'Stress is elevated. Try breathwork exercises (4-7-8 pattern), progressive muscle relaxation, time in nature, and setting boundaries on work hours.',
     anxiety: 'Anxiety is above target. Consider mindfulness meditation, reducing caffeine intake, cold exposure (cold showers), and maintaining a gratitude journal.',
     energy: 'Energy is low. Focus on sleep quality, regular exercise (especially morning), blood glucose stability (protein-forward meals), and hydration.',
+    wellbeing: 'Overall wellbeing is below target. Prioritize activities that bring meaning and joy, nurture close relationships, maintain physical health routines, and consider speaking with a therapist.',
   }
 
   return (
@@ -716,6 +750,8 @@ interface SourcesTabProps {
   formStress: number; setFormStress: (v: number) => void
   formAnxiety: number; setFormAnxiety: (v: number) => void
   formEnergy: number; setFormEnergy: (v: number) => void
+  formWellbeing: number; setFormWellbeing: (v: number) => void
+  checkinStep: number; setCheckinStep: (v: number) => void
   formJournal: string; setFormJournal: (v: string) => void
   formMode: 'text' | 'voice'; setFormMode: (v: 'text' | 'voice') => void
   editingId: string | null
@@ -739,6 +775,8 @@ function SourcesTab({
   formStress, setFormStress,
   formAnxiety, setFormAnxiety,
   formEnergy, setFormEnergy,
+  formWellbeing, setFormWellbeing,
+  checkinStep, setCheckinStep,
   formJournal, setFormJournal,
   formMode, setFormMode,
   editingId,
@@ -756,128 +794,193 @@ function SourcesTab({
 }: SourcesTabProps) {
   const sortedEntries = [...entries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20)
 
+  const CHECKIN_QUESTIONS = [
+    { metric: 'mood', question: 'Over the past day, how would you describe your overall mood?', labels: ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'] },
+    { metric: 'stress', question: 'How much stress have you felt today?', labels: ['Minimal', 'Mild', 'Moderate', 'High', 'Severe'] },
+    { metric: 'anxiety', question: 'How much anxiety or worry have you experienced?', labels: ['Minimal', 'Mild', 'Moderate', 'High', 'Severe'] },
+    { metric: 'energy', question: 'How would you rate your energy level right now?', labels: ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'] },
+    { metric: 'wellbeing', question: 'How would you rate your overall sense of wellbeing?', labels: ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'] },
+  ]
+
+  const setters: Record<string, (v: number) => void> = {
+    mood: setFormMood, stress: setFormStress, anxiety: setFormAnxiety,
+    energy: setFormEnergy, wellbeing: setFormWellbeing,
+  }
+  const getters: Record<string, number> = {
+    mood: formMood, stress: formStress, anxiety: formAnxiety,
+    energy: formEnergy, wellbeing: formWellbeing,
+  }
+
+  function handleSelect(metric: string, value: number) {
+    setters[metric](value)
+    if (checkinStep < 4) setCheckinStep(checkinStep + 1)
+    else setCheckinStep(5) // summary
+  }
+
+  const summaryItems = [
+    { metric: 'mood', label: 'Mood', value: formMood, descriptor: moodDescriptor(formMood), step: 0 },
+    { metric: 'stress', label: 'Stress', value: formStress, descriptor: stressDescriptor(formStress), step: 1 },
+    { metric: 'anxiety', label: 'Anxiety', value: formAnxiety, descriptor: anxietyDescriptor(formAnxiety), step: 2 },
+    { metric: 'energy', label: 'Energy', value: formEnergy, descriptor: energyDescriptor(formEnergy), step: 3 },
+    { metric: 'wellbeing', label: 'Wellbeing', value: formWellbeing, descriptor: wellbeingDescriptor(formWellbeing), step: 4 },
+  ]
+
   return (
     <div className="space-y-6">
-      {/* Entry Form */}
+      {/* Check-In Form */}
       <div className="bg-white/[0.03] border border-white/[0.07] rounded-[18px] p-5">
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-          {editingId ? 'Edit Entry' : 'Daily Entry'}
+          {editingId ? 'Edit Entry' : 'Daily Check-In'}
         </h3>
 
-        {/* Date */}
-        <div className="mb-4">
-          <label className="text-xs text-gray-500 mb-1 block">Date</label>
-          <input
-            type="date"
-            value={formDate}
-            onChange={e => setFormDate(e.target.value)}
-            className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-gray-300 focus:outline-none"
-          />
-        </div>
-
-        {/* Sliders */}
-        <div className="space-y-4 mb-4">
+        {/* Question Steps (0-4) */}
+        {checkinStep >= 0 && checkinStep <= 4 && (
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Mood: {formMood}/5 — {moodDescriptor(formMood)}</label>
-            <input type="range" min={1} max={5} step={1} value={formMood} onChange={e => setFormMood(Number(e.target.value))}
-              className="w-full accent-brand-500" />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">Stress: {formStress}/5 — {stressDescriptor(formStress)}</label>
-            <input type="range" min={1} max={5} step={1} value={formStress} onChange={e => setFormStress(Number(e.target.value))}
-              className="w-full accent-amber-500" />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">Anxiety: {formAnxiety}/5 — {anxietyDescriptor(formAnxiety)}</label>
-            <input type="range" min={1} max={5} step={1} value={formAnxiety} onChange={e => setFormAnxiety(Number(e.target.value))}
-              className="w-full accent-red-500" />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">Energy: {formEnergy}/5 — {energyDescriptor(formEnergy)}</label>
-            <input type="range" min={1} max={5} step={1} value={formEnergy} onChange={e => setFormEnergy(Number(e.target.value))}
-              className="w-full accent-emerald-500" />
-          </div>
-        </div>
+            {/* Progress Dots */}
+            <div className="flex justify-center gap-2 mb-6">
+              {[0, 1, 2, 3, 4].map(i => (
+                <button key={i} onClick={() => setCheckinStep(i)}
+                  className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                    i === checkinStep ? 'bg-brand-400'
+                      : i < checkinStep ? 'bg-brand-400/40' : 'bg-white/[0.1]'
+                  }`} />
+              ))}
+            </div>
 
-        {/* Text / Voice Toggle */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setFormMode('text')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-              formMode === 'text'
-                ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
-                : 'bg-white/[0.06] text-gray-400 border border-white/[0.1] hover:text-gray-300'
-            }`}
-          >
-            Text
-          </button>
-          <button
-            onClick={() => setFormMode('voice')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-              formMode === 'voice'
-                ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
-                : 'bg-white/[0.06] text-gray-400 border border-white/[0.1] hover:text-gray-300'
-            }`}
-          >
-            Voice
-          </button>
-        </div>
+            {/* Question */}
+            <p className="text-sm text-gray-200 text-center mb-6">
+              {CHECKIN_QUESTIONS[checkinStep].question}
+            </p>
 
-        {/* Text Mode */}
-        {formMode === 'text' && (
-          <textarea
-            value={formJournal}
-            onChange={e => setFormJournal(e.target.value)}
-            placeholder="How are you feeling today?"
-            rows={3}
-            className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-gray-300 focus:outline-none resize-none mb-4"
-          />
-        )}
-
-        {/* Voice Mode */}
-        {formMode === 'voice' && (
-          <div className="mb-4 space-y-3">
-            <button
-              onClick={isRecording ? onStopRecording : onStartRecording}
-              className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                isRecording
-                  ? 'bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse'
-                  : 'bg-brand-500/20 text-brand-300 border border-brand-500/30 hover:bg-brand-500/30'
-              }`}
-            >
-              {isRecording ? 'Stop Recording' : 'Start Recording'}
-            </button>
-            {transcript && (
-              <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
-                <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Transcript</div>
-                <div className="text-sm text-gray-300">{transcript}</div>
-              </div>
-            )}
-            {recordedBlob && (
-              <div className="text-xs text-gray-500">
-                Recorded: {(recordedBlob.size / 1024).toFixed(1)} KB
-              </div>
-            )}
+            {/* 1-5 Buttons */}
+            <div className="flex justify-center gap-3">
+              {[1, 2, 3, 4, 5].map(v => {
+                const current = getters[CHECKIN_QUESTIONS[checkinStep].metric]
+                const isSelected = current === v
+                return (
+                  <button key={v}
+                    onClick={() => handleSelect(CHECKIN_QUESTIONS[checkinStep].metric, v)}
+                    className={`flex flex-col items-center gap-1 px-3 py-3 rounded-xl border transition-colors min-w-[56px] ${
+                      isSelected
+                        ? 'bg-brand-500/20 border-brand-500/40 text-brand-300'
+                        : 'bg-white/[0.04] border-white/[0.08] text-gray-400 hover:bg-white/[0.08] hover:text-gray-300'
+                    }`}>
+                    <span className="text-lg font-bold font-mono">{v}</span>
+                    <span className="text-[10px] leading-tight">{CHECKIN_QUESTIONS[checkinStep].labels[v - 1]}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={onSave}
-            className="px-4 py-2 bg-brand-500 hover:bg-brand-400 text-white text-sm font-medium rounded-xl transition-colors"
-          >
-            {editingId ? 'Update' : 'Save'}
-          </button>
-          {editingId && (
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 bg-white/[0.06] hover:bg-white/[0.1] text-gray-300 text-sm font-medium rounded-xl transition-colors"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
+        {/* Summary Step (5) */}
+        {checkinStep === 5 && (
+          <div>
+            {/* Date input */}
+            <div className="mb-4">
+              <label className="text-xs text-gray-500 mb-1 block">Date</label>
+              <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)}
+                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-gray-300 focus:outline-none" />
+            </div>
+
+            {/* Summary Chips - clicking goes back to that question */}
+            <div className="grid grid-cols-5 gap-2 mb-4">
+              {summaryItems.map(item => {
+                const status = getEmotionalStatus(item.metric, item.value)
+                const color = STATUS_COLORS[status]
+                return (
+                  <button key={item.metric} onClick={() => setCheckinStep(item.step)}
+                    className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-2 text-center hover:bg-white/[0.08] transition-colors">
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider">{item.label}</div>
+                    <div className="text-lg font-bold font-mono" style={{ color }}>{item.value}</div>
+                    <div className="text-[10px] text-gray-500">{item.descriptor}</div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Text / Voice Toggle */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setFormMode('text')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  formMode === 'text'
+                    ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                    : 'bg-white/[0.06] text-gray-400 border border-white/[0.1] hover:text-gray-300'
+                }`}
+              >
+                Text
+              </button>
+              <button
+                onClick={() => setFormMode('voice')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  formMode === 'voice'
+                    ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                    : 'bg-white/[0.06] text-gray-400 border border-white/[0.1] hover:text-gray-300'
+                }`}
+              >
+                Voice
+              </button>
+            </div>
+
+            {/* Text Mode */}
+            {formMode === 'text' && (
+              <textarea
+                value={formJournal}
+                onChange={e => setFormJournal(e.target.value)}
+                placeholder="How are you feeling today?"
+                rows={3}
+                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-gray-300 focus:outline-none resize-none mb-4"
+              />
+            )}
+
+            {/* Voice Mode */}
+            {formMode === 'voice' && (
+              <div className="mb-4 space-y-3">
+                <button
+                  onClick={isRecording ? onStopRecording : onStartRecording}
+                  className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                    isRecording
+                      ? 'bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse'
+                      : 'bg-brand-500/20 text-brand-300 border border-brand-500/30 hover:bg-brand-500/30'
+                  }`}
+                >
+                  {isRecording ? 'Stop Recording' : 'Start Recording'}
+                </button>
+                {transcript && (
+                  <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
+                    <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Transcript</div>
+                    <div className="text-sm text-gray-300">{transcript}</div>
+                  </div>
+                )}
+                {recordedBlob && (
+                  <div className="text-xs text-gray-500">
+                    Recorded: {(recordedBlob.size / 1024).toFixed(1)} KB
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={onSave}
+                className="px-4 py-2 bg-brand-500 hover:bg-brand-400 text-white text-sm font-medium rounded-xl transition-colors"
+              >
+                {editingId ? 'Update' : 'Save'}
+              </button>
+              {editingId && (
+                <button
+                  onClick={onCancel}
+                  className="px-4 py-2 bg-white/[0.06] hover:bg-white/[0.1] text-gray-300 text-sm font-medium rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Entry History */}
@@ -890,6 +993,7 @@ function SourcesTab({
               const stressColor = entry.stress != null ? STATUS_COLORS[getEmotionalStatus('stress', entry.stress)] : '#6b7280'
               const anxietyColor = entry.anxiety != null ? STATUS_COLORS[getEmotionalStatus('anxiety', entry.anxiety)] : '#6b7280'
               const energyColor = entry.energy != null ? STATUS_COLORS[getEmotionalStatus('energy', entry.energy)] : '#6b7280'
+              const wellbeingColor = entry.wellbeing != null ? STATUS_COLORS[getEmotionalStatus('wellbeing', entry.wellbeing)] : '#6b7280'
 
               return (
                 <div key={entry.id} className="bg-white/[0.03] rounded-xl p-3">
@@ -923,6 +1027,7 @@ function SourcesTab({
                     <span style={{ color: stressColor }}>S:{entry.stress ?? '-'}</span>
                     <span style={{ color: anxietyColor }}>A:{entry.anxiety ?? '-'}</span>
                     <span style={{ color: energyColor }}>E:{entry.energy ?? '-'}</span>
+                    <span style={{ color: wellbeingColor }}>W:{entry.wellbeing ?? '-'}</span>
                   </div>
                   {entry.journalText && (
                     <div className="text-xs text-gray-500 line-clamp-2">{entry.journalText}</div>
