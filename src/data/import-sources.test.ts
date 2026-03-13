@@ -1,8 +1,8 @@
 import { IMPORT_SOURCES } from './import-sources'
 
 describe('IMPORT_SOURCES', () => {
-  it('has 15 sources', () => {
-    expect(IMPORT_SOURCES).toHaveLength(15)
+  it('has 16 sources', () => {
+    expect(IMPORT_SOURCES).toHaveLength(16)
   })
 
   it('every source has required fields', () => {

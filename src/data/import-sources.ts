@@ -7,6 +7,7 @@ export interface ImportSource {
   fileFormats: ('json' | 'csv' | 'xml')[]
   domains: ImportDomain[]
   parserStatus: 'supported' | 'planned' | 'not-started'
+  parserPath?: string
   futureApi?: {
     hasPublicApi: boolean
     apiUrl?: string
@@ -155,5 +156,14 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     domains: ['nutrition'],
     parserStatus: 'planned',
     futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'No public API — Premium CSV export only' },
+  },
+  {
+    id: 'cronometer',
+    name: 'Cronometer',
+    category: 'app',
+    fileFormats: ['csv'],
+    domains: ['nutrition'],
+    parserStatus: 'planned',
+    futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'No public API — CSV/spreadsheet export' },
   },
 ] as const
