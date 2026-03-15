@@ -6,6 +6,7 @@ import { parseOuraSleep } from '../utils/sleep-parsers/oura'
 import { parseAppleHealthSleep } from '../utils/sleep-parsers/apple-health'
 import { parseWhoopSleep } from '../utils/sleep-parsers/whoop'
 import { SLEEP_TARGETS, getSleepStatus } from '../data/sleep-targets'
+import { IMPORT_SOURCES } from '../data/import-sources'
 import type { SleepNight, SleepSettings, SleepSource } from '../types/sleep'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -651,6 +652,9 @@ interface SourcesTabProps {
 
 function SourcesTab({ nights, conflicts, settings, importing, importError, importSuccess, manualForm, setManualForm, onFileImport, onImportOura, onManualSave, onResolveConflict, onSaveSettings }: SourcesTabProps) {
   const [localSettings, setLocalSettings] = useState(settings)
+  const plannedSleepSources = IMPORT_SOURCES.filter(
+    s => s.domains.includes('sleep') && s.parserStatus === 'planned'
+  )
 
   const SOURCES = [
     { id: 'oura' as const, label: 'Oura Ring', desc: 'Import from existing Oura data in local storage', action: 'button' as const },
@@ -708,6 +712,27 @@ function SourcesTab({ nights, conflicts, settings, importing, importError, impor
           </div>
         ))}
       </div>
+
+      {plannedSleepSources.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Coming Soon</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {plannedSleepSources.map(source => (
+              <div key={source.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex items-center justify-between opacity-60">
+                <div>
+                  <div className="text-sm text-gray-400 font-medium">{source.name}</div>
+                  <div className="flex gap-1 mt-1">
+                    {source.domains.map(d => (
+                      <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-gray-600">{d}</span>
+                    ))}
+                  </div>
+                </div>
+                <span className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/[0.04] text-gray-600 border border-white/[0.06]">Coming Soon</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Manual Entry */}
       <div className="bg-white/[0.03] border border-white/[0.07] rounded-[18px] p-5">
