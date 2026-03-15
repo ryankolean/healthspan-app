@@ -45,14 +45,15 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     parserStatus: 'supported',
     futureApi: { hasPublicApi: true, apiUrl: 'https://developer.whoop.com', requiresOAuth: true, notes: 'REST API with OAuth2, recovery/strain/sleep data' },
   },
-  // Wearables — planned
+  // Wearables — supported (multi-domain parsers)
   {
     id: 'garmin',
     name: 'Garmin',
     category: 'wearable',
     fileFormats: ['csv'],
     domains: ['sleep', 'exercise', 'body-composition', 'heart', 'activity'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/sleep-parsers/garmin.ts, src/utils/exercise-parsers/garmin.ts, src/utils/scale-parsers/garmin.ts',
     futureApi: { hasPublicApi: true, apiUrl: 'https://developer.garmin.com/health-api/overview/', requiresOAuth: true, notes: 'Garmin Health API — comprehensive, requires partner agreement' },
   },
   {
@@ -61,7 +62,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'wearable',
     fileFormats: ['json'],
     domains: ['sleep', 'exercise', 'body-composition', 'heart', 'activity'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/sleep-parsers/fitbit.ts, src/utils/exercise-parsers/fitbit.ts, src/utils/scale-parsers/fitbit.ts',
     futureApi: { hasPublicApi: true, apiUrl: 'https://dev.fitbit.com/build/reference/web-api/', requiresOAuth: true, notes: 'Google-owned REST API with OAuth2, broad data access' },
   },
   {
@@ -70,7 +72,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'wearable',
     fileFormats: ['csv'],
     domains: ['sleep', 'exercise', 'body-composition', 'activity'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/sleep-parsers/samsung.ts, src/utils/exercise-parsers/samsung.ts',
     futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'Health Connect on Android only — no REST API for web apps' },
   },
   // Scales
@@ -80,7 +83,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'scale',
     fileFormats: ['csv'],
     domains: ['body-composition'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/scale-parsers/withings.ts',
     futureApi: { hasPublicApi: true, apiUrl: 'https://developer.withings.com/api-reference', requiresOAuth: true, notes: 'Well-documented REST API, weight + body comp measurements' },
   },
   {
@@ -89,7 +93,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'scale',
     fileFormats: ['csv'],
     domains: ['body-composition'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/scale-parsers/garmin.ts',
     futureApi: { hasPublicApi: true, requiresOAuth: true, notes: 'Uses same Garmin Health API as wearables' },
   },
   {
@@ -98,7 +103,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'scale',
     fileFormats: ['csv'],
     domains: ['body-composition'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/scale-parsers/renpho.ts',
     futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'No public API — Bluetooth sync to app only, CSV export available' },
   },
   {
@@ -107,7 +113,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'scale',
     fileFormats: ['csv'],
     domains: ['body-composition'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/scale-parsers/eufy.ts',
     futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'No public API — app-only with CSV export' },
   },
   {
@@ -116,7 +123,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'scale',
     fileFormats: ['json'],
     domains: ['body-composition'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/scale-parsers/fitbit.ts',
     futureApi: { hasPublicApi: true, requiresOAuth: true, notes: 'Uses Fitbit Web API body endpoints' },
   },
   // Apps — already supported
@@ -138,14 +146,15 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     parserStatus: 'supported',
     futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'No public API — CSV export only' },
   },
-  // Apps — planned
+  // Apps — supported
   {
     id: 'strong',
     name: 'Strong',
     category: 'app',
     fileFormats: ['csv'],
     domains: ['exercise'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/exercise-parsers/strong.ts',
     futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'No public API — CSV export only' },
   },
   {
@@ -154,7 +163,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'app',
     fileFormats: ['csv'],
     domains: ['nutrition'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/nutrition-parsers/myfitnesspal.ts',
     futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'No public API — Premium CSV export only' },
   },
   {
@@ -163,7 +173,8 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
     category: 'app',
     fileFormats: ['csv'],
     domains: ['nutrition'],
-    parserStatus: 'planned',
+    parserStatus: 'supported',
+    parserPath: 'src/utils/nutrition-parsers/cronometer.ts',
     futureApi: { hasPublicApi: false, requiresOAuth: false, notes: 'No public API — CSV/spreadsheet export' },
   },
 ] as const

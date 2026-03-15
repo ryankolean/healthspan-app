@@ -5,8 +5,31 @@ import { saveOuraData, hasOuraData } from '../utils/oura-storage'
 import { isDemoMode, getActivePersona, clearDemoData, DEMO_PERSONAS, generateAllDemoData } from '../utils/demo-data'
 import { IMPORT_SOURCES } from '../data/import-sources'
 import type { ImportSource } from '../data/import-sources'
-import { getLastImportForSource } from '../utils/import-storage'
+import { addImportRecord, getLastImportForSource } from '../utils/import-storage'
 import type { OuraData } from '../types'
+// Scale parsers
+import { parseWithingsScale } from '../utils/scale-parsers/withings'
+import { parseGarminScale } from '../utils/scale-parsers/garmin'
+import { parseRenphoScale } from '../utils/scale-parsers/renpho'
+import { parseEufyScale } from '../utils/scale-parsers/eufy'
+import { parseFitbitScale } from '../utils/scale-parsers/fitbit'
+// Sleep parsers
+import { parseGarminSleep } from '../utils/sleep-parsers/garmin'
+import { parseFitbitSleep } from '../utils/sleep-parsers/fitbit'
+import { parseSamsungSleep } from '../utils/sleep-parsers/samsung'
+// Exercise parsers
+import { parseGarminExercise } from '../utils/exercise-parsers/garmin'
+import { parseFitbitExercise } from '../utils/exercise-parsers/fitbit'
+import { parseSamsungExercise } from '../utils/exercise-parsers/samsung'
+import { parseStrongCsv } from '../utils/exercise-parsers/strong'
+// Nutrition parsers
+import { parseMyFitnessPalCsv } from '../utils/nutrition-parsers/myfitnesspal'
+import { parseCronometerCsv } from '../utils/nutrition-parsers/cronometer'
+// Storage functions
+import { importSleepNights } from '../utils/sleep-storage'
+import { importWorkouts, saveVO2Max } from '../utils/exercise-storage'
+import { saveBodyCompEntry } from '../utils/body-composition-storage'
+import { saveNutritionEntry } from '../utils/nutrition-storage'
 
 export default function Settings() {
   const [apiKey, setApiKeyState] = useState('')
@@ -77,16 +100,130 @@ export default function Settings() {
 
   async function handleFileImport(source: ImportSource, file: File) {
     const text = await file.text()
+    let totalRecords = 0
+    const dates: string[] = []
 
     try {
       switch (source.id) {
-        // Existing parsers will be wired up here as they're built
-        // For now, only already-supported sources have parsers
+        // ── Multi-domain wearables ──
+        case 'garmin': {
+          const sleep = parseGarminSleep(text)
+          const exercise = parseGarminExercise(text)
+          const bodyComp = parseGarminScale(text)
+          importSleepNights(sleep.nights)
+          importWorkouts(exercise.workouts)
+          exercise.vo2max.forEach(v => saveVO2Max(v))
+          bodyComp.forEach(e => saveBodyCompEntry(e))
+          totalRecords = sleep.nights.length + exercise.workouts.length + exercise.vo2max.length + bodyComp.length
+          ;[...sleep.nights.map(n => n.date), ...exercise.workouts.map(w => w.date), ...bodyComp.map(e => e.date)].forEach(d => dates.push(d))
+          break
+        }
+        case 'fitbit': {
+          const sleep = parseFitbitSleep(text)
+          const exercise = parseFitbitExercise(text)
+          const bodyComp = parseFitbitScale(text)
+          importSleepNights(sleep.nights)
+          importWorkouts(exercise.workouts)
+          exercise.vo2max.forEach(v => saveVO2Max(v))
+          bodyComp.forEach(e => saveBodyCompEntry(e))
+          totalRecords = sleep.nights.length + exercise.workouts.length + exercise.vo2max.length + bodyComp.length
+          ;[...sleep.nights.map(n => n.date), ...exercise.workouts.map(w => w.date), ...bodyComp.map(e => e.date)].forEach(d => dates.push(d))
+          break
+        }
+        case 'samsung': {
+          const sleep = parseSamsungSleep(text)
+          const exercise = parseSamsungExercise(text)
+          importSleepNights(sleep.nights)
+          importWorkouts(exercise.workouts)
+          exercise.vo2max.forEach(v => saveVO2Max(v))
+          totalRecords = sleep.nights.length + exercise.workouts.length + exercise.vo2max.length
+          ;[...sleep.nights.map(n => n.date), ...exercise.workouts.map(w => w.date)].forEach(d => dates.push(d))
+          break
+        }
+
+        // ── Scale-only sources ──
+        case 'withings-scale': {
+          const entries = parseWithingsScale(text)
+          entries.forEach(e => saveBodyCompEntry(e))
+          totalRecords = entries.length
+          entries.forEach(e => dates.push(e.date))
+          break
+        }
+        case 'garmin-scale': {
+          const entries = parseGarminScale(text)
+          entries.forEach(e => saveBodyCompEntry(e))
+          totalRecords = entries.length
+          entries.forEach(e => dates.push(e.date))
+          break
+        }
+        case 'renpho': {
+          const entries = parseRenphoScale(text)
+          entries.forEach(e => saveBodyCompEntry(e))
+          totalRecords = entries.length
+          entries.forEach(e => dates.push(e.date))
+          break
+        }
+        case 'eufy': {
+          const entries = parseEufyScale(text)
+          entries.forEach(e => saveBodyCompEntry(e))
+          totalRecords = entries.length
+          entries.forEach(e => dates.push(e.date))
+          break
+        }
+        case 'fitbit-scale': {
+          const entries = parseFitbitScale(text)
+          entries.forEach(e => saveBodyCompEntry(e))
+          totalRecords = entries.length
+          entries.forEach(e => dates.push(e.date))
+          break
+        }
+
+        // ── Exercise-only apps ──
+        case 'strong': {
+          const result = parseStrongCsv(text)
+          importWorkouts(result.workouts)
+          result.vo2max.forEach(v => saveVO2Max(v))
+          totalRecords = result.workouts.length + result.vo2max.length
+          result.workouts.forEach(w => dates.push(w.date))
+          break
+        }
+
+        // ── Nutrition apps ──
+        case 'myfitnesspal': {
+          const entries = parseMyFitnessPalCsv(text)
+          entries.forEach(e => saveNutritionEntry(e))
+          totalRecords = entries.length
+          entries.forEach(e => dates.push(e.date))
+          break
+        }
+        case 'cronometer': {
+          const entries = parseCronometerCsv(text)
+          entries.forEach(e => saveNutritionEntry(e))
+          totalRecords = entries.length
+          entries.forEach(e => dates.push(e.date))
+          break
+        }
+
         default:
-          void text
           alert(`Parser for ${source.name} is not yet implemented.`)
           return
       }
+
+      // Log import to history
+      const sortedDates = dates.filter(Boolean).sort()
+      addImportRecord({
+        id: `${source.id}-${Date.now()}`,
+        sourceId: source.id,
+        importedAt: new Date().toISOString(),
+        recordCount: totalRecords,
+        domains: source.domains,
+        dateRange: {
+          from: sortedDates[0] ?? '',
+          to: sortedDates[sortedDates.length - 1] ?? '',
+        },
+      })
+
+      alert(`Imported ${totalRecords} records from ${source.name}.`)
     } catch (err) {
       alert(`Import failed: ${(err as Error).message}`)
     }
