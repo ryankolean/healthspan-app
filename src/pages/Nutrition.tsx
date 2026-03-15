@@ -3,6 +3,7 @@ import { Apple } from 'lucide-react'
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts'
 import { getNutritionEntries, saveNutritionEntry, deleteNutritionEntry, getEntriesByDate, getDailyTotals, getNutritionSettings, saveNutritionSettings } from '../utils/nutrition-storage'
 import { getNutritionStatus, getProteinTarget, getCalorieRange } from '../data/nutrition-targets'
+import { IMPORT_SOURCES } from '../data/import-sources'
 import { getCurrentWeightKg } from '../utils/body-composition-storage'
 import type { NutritionEntry, NutritionSettings, MealType } from '../types/nutrition'
 import { v4 as uuidv4 } from 'uuid'
@@ -967,12 +968,33 @@ function SourcesTab({
         </button>
       </div>
 
-      {/* Future placeholder */}
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-4">
-        <div className="text-xs text-gray-600">
-          MyFitnessPal / Cronometer import coming soon. For now, log meals manually above.
-        </div>
-      </div>
+      {/* Data Import */}
+      {(() => {
+        const nutritionSources = IMPORT_SOURCES.filter(
+          s => s.domains.includes('nutrition')
+        )
+        return nutritionSources.length > 0 ? (
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-[18px] p-5">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Data Import</h3>
+            <p className="text-xs text-gray-500 mb-4">For now, log meals manually above. File import support is coming soon for the following sources.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {nutritionSources.map(source => (
+                <div key={source.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex items-center justify-between opacity-60">
+                  <div>
+                    <div className="text-sm text-gray-400 font-medium">{source.name}</div>
+                    <div className="flex gap-1 mt-1">
+                      {source.domains.map(d => (
+                        <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-gray-600">{d}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <span className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/[0.04] text-gray-600 border border-white/[0.06]">Coming Soon</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null
+      })()}
     </div>
   )
 }

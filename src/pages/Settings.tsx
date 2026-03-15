@@ -3,6 +3,9 @@ import { Settings as SettingsIcon, Key, Upload, CheckCircle, AlertCircle, Eye, E
 import { getApiKey, setApiKey, clearApiKey } from '../utils/lab-storage'
 import { saveOuraData, hasOuraData } from '../utils/oura-storage'
 import { isDemoMode, getActivePersona, clearDemoData, DEMO_PERSONAS, generateAllDemoData } from '../utils/demo-data'
+import { IMPORT_SOURCES } from '../data/import-sources'
+import type { ImportSource } from '../data/import-sources'
+import { getLastImportForSource } from '../utils/import-storage'
 import type { OuraData } from '../types'
 
 export default function Settings() {
@@ -70,6 +73,23 @@ export default function Settings() {
       }
     }
     reader.readAsText(file)
+  }
+
+  async function handleFileImport(source: ImportSource, file: File) {
+    const text = await file.text()
+
+    try {
+      switch (source.id) {
+        // Existing parsers will be wired up here as they're built
+        // For now, only already-supported sources have parsers
+        default:
+          void text
+          alert(`Parser for ${source.name} is not yet implemented.`)
+          return
+      }
+    } catch (err) {
+      alert(`Import failed: ${(err as Error).message}`)
+    }
   }
 
   return (
@@ -198,6 +218,73 @@ export default function Settings() {
           {ouraImported ? 'Replace Oura Data' : 'Import Oura JSON'}
           <input type="file" accept=".json" onChange={handleOuraImport} className="hidden" />
         </label>
+      </section>
+
+      {/* ─── Data Sources ─── */}
+      <section className="bg-white/[0.04] border border-white/[0.08] rounded-[18px] p-6 mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Upload size={16} className="text-brand-400" />
+          <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Data Sources</h2>
+        </div>
+        <p className="text-sm text-gray-400 mb-5">
+          Import health data from your devices and apps. Upload exported files to pull in your data.
+        </p>
+
+        {(['wearable', 'scale', 'app'] as const).map(category => {
+          const sources = IMPORT_SOURCES.filter(s => s.category === category)
+          const label = category === 'wearable' ? 'Wearables' : category === 'scale' ? 'Smart Scales' : 'Apps'
+
+          return (
+            <div key={category} className="mb-6 last:mb-0">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{label}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {sources.map(source => {
+                  const lastImport = getLastImportForSource(source.id)
+                  const isSupported = source.parserStatus === 'supported'
+
+                  return (
+                    <div key={source.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-gray-300 font-medium">{source.name}</div>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {source.domains.map(d => (
+                            <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-gray-500">{d}</span>
+                          ))}
+                        </div>
+                        {lastImport && (
+                          <div className="text-[10px] text-gray-600 mt-1">
+                            Last import: {lastImport.importedAt.slice(0, 10)} ({lastImport.recordCount} records)
+                          </div>
+                        )}
+                      </div>
+                      <div className="ml-3 flex-shrink-0">
+                        {isSupported ? (
+                          <label className="px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-500/20 text-brand-300 border border-brand-500/30 cursor-pointer hover:bg-brand-500/30 transition-colors">
+                            Import
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept={source.fileFormats.map(f => `.${f}`).join(',')}
+                              onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (file) handleFileImport(source, file)
+                                e.target.value = ''
+                              }}
+                            />
+                          </label>
+                        ) : (
+                          <span className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/[0.04] text-gray-600 border border-white/[0.06]">
+                            Coming Soon
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </section>
 
       {/* ─── Exercise Settings ─── */}

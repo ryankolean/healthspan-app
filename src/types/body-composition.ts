@@ -1,3 +1,5 @@
+export type BodyCompSource = 'manual' | 'withings' | 'garmin' | 'renpho' | 'eufy' | 'fitbit'
+
 export interface BodyCompEntry {
   id: string
   date: string           // YYYY-MM-DD
@@ -6,4 +8,5 @@ export interface BodyCompEntry {
   leanMassKg?: number    // auto-calculated: weightKg * (1 - bodyFatPct/100)
   waistCm?: number
   note?: string
+  source?: BodyCompSource
 }

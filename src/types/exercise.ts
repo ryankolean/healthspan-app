@@ -1,5 +1,5 @@
 // src/types/exercise.ts
-export type ExerciseSource = 'oura' | 'apple_health' | 'strava' | 'hevy' | 'manual'
+export type ExerciseSource = 'oura' | 'apple_health' | 'strava' | 'hevy' | 'garmin' | 'fitbit' | 'strong' | 'samsung' | 'manual'
 export type ExerciseType = 'cardio' | 'strength' | 'stability' | 'sport'
 
 export interface ExerciseSet {

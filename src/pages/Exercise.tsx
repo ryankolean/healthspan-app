@@ -7,6 +7,7 @@ import { parseHevyCsv } from '../utils/exercise-parsers/hevy'
 import { parseStravaActivities } from '../utils/exercise-parsers/strava'
 import { parseAppleHealthXml } from '../utils/exercise-parsers/apple-health'
 import { getVO2MaxTargets } from '../data/vo2max-targets'
+import { IMPORT_SOURCES } from '../data/import-sources'
 import { getEffectiveReferenceRange } from '../utils/profile-storage'
 import type { ExerciseWorkout, VO2MaxEntry, ExerciseSettings } from '../types/exercise'
 
@@ -513,6 +514,9 @@ interface SourcesTabProps {
 
 function SourcesTab({ workouts, conflicts, settings, importing, importError, importSuccess, onFileImport, onImportOura, onResolveConflict, onSaveSettings }: SourcesTabProps) {
   const [localSettings, setLocalSettings] = useState(settings)
+  const plannedExerciseSources = IMPORT_SOURCES.filter(
+    s => s.domains.includes('exercise') && s.parserStatus === 'planned'
+  )
 
   const SOURCES = [
     { id: 'oura', label: 'Oura Ring', desc: 'Import from existing Oura data in local storage', action: 'button' as const },
@@ -571,6 +575,27 @@ function SourcesTab({ workouts, conflicts, settings, importing, importError, imp
           </div>
         ))}
       </div>
+
+      {plannedExerciseSources.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Coming Soon</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {plannedExerciseSources.map(source => (
+              <div key={source.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex items-center justify-between opacity-60">
+                <div>
+                  <div className="text-sm text-gray-400 font-medium">{source.name}</div>
+                  <div className="flex gap-1 mt-1">
+                    {source.domains.map(d => (
+                      <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-gray-600">{d}</span>
+                    ))}
+                  </div>
+                </div>
+                <span className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/[0.04] text-gray-600 border border-white/[0.06]">Coming Soon</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {conflicts.length > 0 && (
         <div className="bg-amber-400/[0.07] border border-amber-400/20 rounded-[18px] p-5">
