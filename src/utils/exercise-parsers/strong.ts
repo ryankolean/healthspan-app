@@ -1,0 +1,70 @@
+import { v4 as uuidv4 } from 'uuid'
+import type { ExerciseWorkout, ExerciseSet, VO2MaxEntry } from '../../types/exercise'
+
+function splitCsvLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (const ch of line) {
+    if (ch === '"') { inQuotes = !inQuotes }
+    else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = '' }
+    else { current += ch }
+  }
+  result.push(current.trim())
+  return result
+}
+
+function parseCsvRows(csv: string): Record<string, string>[] {
+  const lines = csv.trim().split('\n')
+  if (lines.length < 2) return []
+  const headers = splitCsvLine(lines[0])
+  return lines.slice(1).map(line => {
+    const values = splitCsvLine(line)
+    return Object.fromEntries(headers.map((h, i) => [h, values[i] ?? '']))
+  })
+}
+
+export function parseStrongCsv(csv: string): { workouts: ExerciseWorkout[]; vo2max: VO2MaxEntry[] } {
+  if (!csv.trim()) return { workouts: [], vo2max: [] }
+
+  const rows = parseCsvRows(csv)
+
+  // Group by Date + Workout Name
+  const groups = new Map<string, { date: string; name: string; sets: ExerciseSet[] }>()
+
+  for (const row of rows) {
+    const key = `${row['Date']}__${row['Workout Name']}`
+    if (!groups.has(key)) {
+      groups.set(key, { date: row['Date'], name: row['Workout Name'], sets: [] })
+    }
+    const group = groups.get(key)!
+    const weightRaw = row['Weight']
+    const repsRaw = row['Reps']
+    const secondsRaw = row['Seconds']
+    const weightKg = weightRaw ? parseFloat(weightRaw) : undefined
+    const reps = repsRaw ? parseInt(repsRaw, 10) : undefined
+    const durationSec = secondsRaw ? parseInt(secondsRaw, 10) : undefined
+    const setOrderRaw = row['Set Order']
+    const setIndex = setOrderRaw ? parseInt(setOrderRaw, 10) - 1 : 0
+    group.sets.push({
+      exercise: row['Exercise Name'],
+      setIndex,
+      weightKg: weightKg !== undefined && !isNaN(weightKg) ? weightKg : undefined,
+      reps: reps !== undefined && !isNaN(reps) ? reps : undefined,
+      durationSec: durationSec !== undefined && !isNaN(durationSec) ? durationSec : undefined,
+    })
+  }
+
+  const workouts: ExerciseWorkout[] = Array.from(groups.values()).map(g => ({
+    id: uuidv4(),
+    source: 'strong' as const,
+    sourceId: `strong-${g.date}-${g.name}`,
+    date: g.date,
+    type: 'strength' as const,
+    activityName: g.name,
+    sets: g.sets,
+    createdAt: Date.now(),
+  }))
+
+  return { workouts, vo2max: [] }
+}
