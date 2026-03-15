@@ -59,5 +59,5 @@ export function parseEufyScale(csv: string): BodyCompEntry[] {
         ? Math.round(leanMassKg * 10) / 10
         : undefined,
     }
-  }).filter((e): e is BodyCompEntry => e !== null)
+  }).filter((e): e is NonNullable<typeof e> => e !== null)
 }

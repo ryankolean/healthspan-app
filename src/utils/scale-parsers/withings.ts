@@ -53,5 +53,5 @@ export function parseWithingsScale(csv: string): BodyCompEntry[] {
       leanMassKg: leanMassKg !== undefined ? Math.round(leanMassKg * 10) / 10 : undefined,
       note: row['Comments'] || undefined,
     }
-  }).filter((e): e is BodyCompEntry => e !== null)
+  }).filter((e): e is NonNullable<typeof e> => e !== null)
 }

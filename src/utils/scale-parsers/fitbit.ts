@@ -53,5 +53,5 @@ export function parseFitbitScale(jsonStr: string): BodyCompEntry[] {
       bodyFatPct,
       leanMassKg,
     }
-  }).filter((e): e is BodyCompEntry => e !== null)
+  }).filter((e): e is NonNullable<typeof e> => e !== null)
 }
